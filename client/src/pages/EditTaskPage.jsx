@@ -28,7 +28,7 @@ export function EditTaskPage() {
         className="new-task-heading round"
       >
         <h2> Edit task</h2>
-        <button className="btn primary small filled">Update</button>
+        <button className="ser-btn-primary-small">Update</button>
       </div>
       <div className="new-task-form">
         <label> Task title </label>
@@ -37,7 +37,7 @@ export function EditTaskPage() {
           name="title"
           onChange={handleEditTaskInfo}
           placeholder="Title"
-          className="input small primary filled"
+          className="ser-input-primary-small-outlined"
           type="text"
         />
 
@@ -58,7 +58,7 @@ export function EditTaskPage() {
             name="priority"
             type="text"
             list="select-priority"
-            className="input small primary filled"
+            className="ser-input-primary-small-outlined"
           />
           <datalist id="select-priority">
             <option value="Low">Low</option>
@@ -74,7 +74,7 @@ export function EditTaskPage() {
             name="status"
             type="text"
             list="select-status"
-            className="input small primary filled"
+            className="ser-input-primary-small-outlined"
           />
           <datalist id="select-status">
             <option value="In progress">In progress</option>
@@ -88,7 +88,7 @@ export function EditTaskPage() {
             onChange={handleEditTaskInfo}
             name="user"
             type="text"
-            className="input small primary filled"
+            className="ser-input-primary-small-outlined"
           />
 
           <label> Due date</label>
@@ -97,14 +97,14 @@ export function EditTaskPage() {
             onChange={handleEditTaskInfo}
             name="dueDate"
             type="date"
-            className="input small primary filled"
+            className="ser-input-primary-small-outlined"
           />
         </div>
 
         <label> Description (supports markdown) </label>
         <textarea
           value={selectedTask.description}
-          className="input primary filled"
+          className="ser-input-primary-small-outlined"
           onChange={handleEditTaskInfo}
           name="description"
           rows={10}

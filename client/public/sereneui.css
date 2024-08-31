@@ -1,0 +1,713 @@
+:root {
+  --primary-color: blue;
+  --secondary-color: rgba(184, 11, 117, 0.959);
+  --text-primary: white;
+  --btn-font-size: 1rem;
+  --btn-small-font-size: 1rem;
+  --btn-medium-font-size: 1.2rem;
+  --btn-large-font-size: 1.4rem;
+  --btn-primary-font-color: white;
+  --btn-secondary-font-color: white;
+  --small-input-font-size: 1rem;
+  --medium-input-font-size: 1.2rem;
+  --large-input-font-size: 1.6rem;
+  --danger-color: red;
+  --warning-color: orange;
+  --success-color: green;
+  --paragraph-font-size: 1rem;
+  --h1-font-size: 2rem;
+  --primary-hover-background: aliceblue; /*background color to use when hovering over a primary class element */
+  --secondary-hover-background: #ffc0cb33; /* background color to use when hovering over a secondary class element */
+  --small-button-padding: 0.5rem;
+  --medium-button-padding: 0.8rem;
+  --large-button-padding: 1rem;
+
+  --round-radius: 0.5rem;
+  --rounder-radius: 1rem;
+  --roundest-radius: 1.2rem;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* common button styles */
+.ser-btn-primary-small,
+.ser-btn-primary-medium,
+.ser-btn-primary-large,
+.ser-btn-secondary-small,
+.ser-btn-secondary-medium,
+.ser-btn-secondary-large,
+.ser-btn-danger-small,
+.ser-btn-danger-medium,
+.ser-btn-danger-large,
+.ser-btn-warning-small,
+.ser-btn-warning-medium,
+.ser-btn-warning-large,
+.ser-btn-success-small,
+.ser-btn-success-medium,
+.ser-btn-success-large,
+.ser-btn-disabled-small,
+.ser-btn-disabled-medium,
+.ser-btn-disabled-large,
+.ser-btn-primary-small-outlined,
+.ser-btn-primary-medium-outlined,
+.ser-btn-primary-large-outlined,
+.ser-btn-secondary-small-outlined,
+.ser-btn-secondary-medium-outlined,
+.ser-btn-secondary-large-outlined,
+.ser-btn-error-small-outlined,
+.ser-btn-error-medium-outlined,
+.ser-btn-error-large-outlined,
+.ser-btn-warning-small-outlined,
+.ser-btn-warning-medium-outlined,
+.ser-btn-warning-large-outlined,
+.ser-btn-success-small-outlined,
+.ser-btn-success-medium-outlined,
+.ser-btn-success-large-outlined {
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+/* common button small size styles */
+
+.ser-btn-primary-small,
+.ser-btn-secondary-small,
+.ser-btn-primary-small-outlined,
+.ser-btn-secondary-small-outlined,
+.ser-btn-danger-small,
+.ser-btn-warning-small,
+.ser-btn-success-small,
+.ser-btn-disabled-small,
+.ser-btn-error-small-outlined,
+.ser-btn-warning-small-outlined,
+.ser-btn-success-small-outlined {
+  font-size: var(--btn-small-font-size);
+  padding: var(--small-button-padding);
+}
+
+.ser-btn-primary-medium,
+.ser-btn-secondary-medium,
+.ser-btn-primary-medium-outlined,
+.ser-btn-secondary-medium-outlined,
+.ser-btn-danger-medium,
+.ser-btn-warning-medium,
+.ser-btn-success-medium,
+.ser-btn-disabled-medium,
+.ser-btn-error-medium-outlined,
+.ser-btn-warning-medium-outlined,
+.ser-btn-success-medium-outlined {
+  font-size: var(--btn-medium-font-size);
+  padding: var(--medium-button-padding);
+}
+
+/* common button large size styles */
+
+.ser-btn-primary-large,
+.ser-btn-secondary-large,
+.ser-btn-primary-large-outlined,
+.ser-btn-secondary-large-outlined,
+.ser-btn-danger-large,
+.ser-btn-warning-large,
+.ser-btn-success-large,
+.ser-btn-disabled-large,
+.ser-btn-error-large-outlined,
+.ser-btn-warning-large-outlined,
+.ser-btn-success-large-outlined {
+  font-size: var(--btn-large-font-size);
+  padding: var(--large-button-padding);
+}
+
+/* primary common button color styles */
+
+.ser-btn-primary-small,
+.ser-btn-primary-medium,
+.ser-btn-primary-large {
+  color: var(--btn-primary-font-color);
+  background-color: var(--primary-color);
+}
+
+/* secondary common button color styles */
+
+.ser-btn-secondary-small,
+.ser-btn-secondary-medium,
+.ser-btn-secondary-large {
+  color: var(--btn-secondary-font-color);
+  background-color: var(--secondary-color);
+}
+
+.ser-btn-primary-small-outlined,
+.ser-btn-primary-medium-outlined,
+.ser-btn-primary-large-outlined {
+  border: solid 1px var(--primary-color);
+  background-color: white;
+  color: var(--primary-color);
+}
+
+.ser-btn-secondary-small-outlined,
+.ser-btn-secondary-medium-outlined,
+.ser-btn-secondary-large-outlined {
+  border: solid 1px var(--secondary-color);
+  background-color: white;
+  color: var(--secondary-color);
+}
+
+.ser-btn-danger-small,
+.ser-btn-danger-medium,
+.ser-btn-danger-large {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.ser-btn-warning-small,
+.ser-btn-warning-medium,
+.ser-btn-warning-large {
+  background-color: var(--warning-color);
+  color: black;
+}
+
+.ser-btn-success-small,
+.ser-btn-success-medium,
+.ser-btn-success-large {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.ser-btn-disabled-small,
+.ser-btn-disabled-medium,
+.ser-btn-disabled-large {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ser-btn-error-small-outlined,
+.ser-btn-error-medium-outlined,
+.ser-btn-error-large-outlined {
+  border: solid 1px var(--danger-color);
+  background-color: white;
+  color: var(--danger-color);
+}
+
+.ser-btn-warning-small-outlined,
+.ser-btn-warning-medium-outlined,
+.ser-btn-warning-large-outlined {
+  border: solid 1px var(--warning-color);
+  background-color: white;
+  color: var(--warning-color);
+}
+
+.ser-btn-success-small-outlined,
+.ser-btn-success-medium-outlined,
+.ser-btn-success-large-outlined {
+  border: solid 1px var(--success-color);
+  background-color: white;
+  color: var(--success-color);
+}
+
+/* Input common styles */
+
+.ser-input-primary-small-filled,
+.ser-input-primary-medium-filled,
+.ser-input-primary-large-filled,
+.ser-input-primary-small-outlined,
+.ser-input-primary-medium-outlined,
+.ser-input-primary-large-outlined,
+.ser-input-secondary-small-filled,
+.ser-input-secondary-medium-filled,
+.ser-input-secondary-large-filled,
+.ser-input-secondary-small-outlined,
+.ser-input-secondary-medium-outlined,
+.ser-input-secondary-large-outlined {
+  outline: none;
+  border: none;
+}
+
+/* Input element small size styles */
+
+.ser-input-primary-small-filled,
+.ser-input-primary-small-outlined,
+.ser-input-secondary-small-filled,
+.ser-input-secondary-small-outlined {
+  padding: var(--small-button-padding);
+}
+
+.ser-input-primary-medium-filled,
+.ser-input-primary-medium-outlined,
+.ser-input-secondary-medium-filled,
+.ser-input-secondary-medium-outlined {
+  padding: var(--medium-button-padding);
+}
+
+.ser-input-primary-large-filled,
+.ser-input-primary-large-outlined,
+.ser-input-secondary-large-filled,
+.ser-input-secondary-large-outlined {
+  padding: var(--large-button-padding);
+}
+
+/* Input variant (primary,secondary) styles */
+
+.ser-input-primary-small-filled,
+.ser-input-primary-medium-filled,
+.ser-input-primary-large-filled {
+  border-bottom: solid 1px var(--primary-color);
+  background-color: aliceblue;
+}
+
+.ser-input-primary-small-outlined,
+.ser-input-primary-medium-outlined,
+.ser-input-primary-large-outlined {
+  border: solid 1px var(--primary-color);
+  background-color: white;
+}
+
+.ser-input-secondary-small-filled,
+.ser-input-secondary-medium-filled,
+.ser-input-secondary-large-filled {
+  border-bottom: solid 1px var(--secondary-color);
+  background-color: aliceblue;
+}
+
+.ser-input-secondary-small-outlined,
+.ser-input-secondary-medium-outlined,
+.ser-input-secondary-large-outlined {
+  border: solid 1px var(--secondary-color);
+  background-color: white;
+}
+
+.ser-round {
+  border-radius: var(--round-radius);
+}
+
+.ser-rounder {
+  border-radius: var(--rounder-radius);
+}
+
+.ser-roundest {
+  border-radius: var(--roundest-radius);
+}
+
+.ser-tag-primary-filled {
+  background-color: var(--primary-color);
+  color: var(--btn-primary-font-color);
+  border: none;
+}
+
+.ser-tag-primary-outlined {
+  border: solid 1px var(--primary-color);
+  color: var(--primary-color);
+  background-color: white;
+}
+
+.ser-tag-secondary-filled {
+  background-color: var(--secondary-color);
+  color: var(--btn-secondary-font-color);
+  border: none;
+}
+
+.ser-tag-secondary-outlined {
+  border: solid 1px var(--secondary-color);
+  background-color: white;
+  color: var(--secondary-color);
+}
+
+.ser-primary-hover:hover {
+  background-color: var(--primary-hover-background);
+}
+
+.ser-secondary-hover:hover {
+  background-color: var(--secondary-hover-background);
+}
+
+/* Check box styles */
+
+/* checkbox small size styles */
+
+.ser-checkbox-primary-small,
+.ser-checkbox-secondary-small {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ser-checkbox-primary-medium,
+.ser-checkbox-secondary-medium {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.ser-checkbox-primary-large,
+.ser-checkbox-secondary-large {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.ser-checkbox-primary-small,
+.ser-checkbox-primary-medium,
+.ser-checkbox-primary-large {
+  accent-color: var(--primary-color);
+}
+
+.ser-checkbox-secondary-small,
+.ser-checkbox-secondary-medium,
+.ser-checkbox-secondary-large {
+  accent-color: var(--secondary-color);
+}
+
+/* Radio box styles */
+
+/* Radio small size styles */
+
+.ser-radio-primary-small,
+.ser-radio-secondary-small {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ser-radio-primary-medium,
+.ser-radio-secondary-medium {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.ser-radio-primary-large,
+.ser-radio-secondary-large {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.ser-radio-primary-small,
+.ser-radio-primary-medium,
+.ser-radio-primary-large {
+  accent-color: var(--primary-color);
+}
+
+.ser-radio-secondary-small,
+.ser-radio-secondary-medium,
+.ser-radio-secondary-large {
+  accent-color: var(--secondary-color);
+}
+
+/* Range box styles */
+
+/* Range small size styles */
+
+/* Targeting the range input with the specified classes */
+.ser-range-secondary-small,
+.ser-range-secondary-medium,
+.ser-range-secondary-large {
+  width: 100%; /* Set the width as needed */
+  accent-color: var(--secondary-color);
+}
+
+/* Styling the thumb for the specified classes in WebKit/Blink browsers (Chrome, Safari) */
+.ser-range-secondary-small::-webkit-slider-thumb,
+.ser-range-secondary-medium::-webkit-slider-thumb,
+.ser-range-secondary-large::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; /* Set width as needed */
+  height: 16px; /* Set height as needed */
+  background-color: var(--secondary-color); /* Set background color as needed */
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Styling the thumb for the specified classes in Mozilla Firefox */
+.ser-range-secondary-small::-moz-range-thumb,
+.ser-range-secondary-medium::-moz-range-thumb,
+.ser-range-secondary-large::-moz-range-thumb {
+  width: 16px; /* Set width as needed */
+  height: 16px; /* Set height as needed */
+  background-color: var(--secondary-color);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Styling the thumb for the specified classes in Microsoft Edge and IE */
+.ser-range-secondary-small::-ms-thumb,
+.ser-range-secondary-medium::-ms-thumb,
+.ser-range-secondary-large::-ms-thumb {
+  width: 16px; /* Set width as needed */
+  height: 16px; /* Set height as needed */
+  background-color: var(--secondary-color);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Optional: Styling for the track for the specified classes */
+.ser-range-secondary-small::-webkit-slider-runnable-track,
+.ser-range-secondary-medium::-webkit-slider-runnable-track,
+.ser-range-secondary-large::-webkit-slider-runnable-track {
+  background-color: var(--secondary-color);
+  height: 4px; /* Set height as needed */
+  border-radius: 2px; /* Set border radius as needed */
+}
+
+.ser-range-secondary-small::-moz-range-track,
+.ser-range-secondary-medium::-moz-range-track,
+.ser-range-secondary-large::-moz-range-track {
+  background-color: var(--secondary-color);
+  accent-color: var(--secondary-color);
+  height: 4px; /* Set height as needed */
+  border-radius: 2px; /* Set border radius as needed */
+}
+
+.ser-range-secondary-small::-ms-track,
+.ser-range-secondary-medium::-ms-track,
+.ser-range-secondary-large::-ms-track {
+  background-color: #ddd; /* Set background color as needed */
+  height: 4px; /* Set height as needed */
+  border-radius: 2px; /* Set border radius as needed */
+}
+
+/* Optional: Styling for the thumb when the slider is disabled for the specified classes */
+.ser-range-secondary-small:disabled::-webkit-slider-thumb,
+.ser-range-secondary-medium:disabled::-webkit-slider-thumb,
+.ser-range-secondary-large:disabled::-webkit-slider-thumb {
+  background-color: #ccc; /* Set background color as needed */
+  border-color: #999; /* Set border color as needed */
+}
+
+.ser-range-secondary-small:disabled::-moz-range-thumb,
+.ser-range-secondary-medium:disabled::-moz-range-thumb,
+.ser-range-secondary-large:disabled::-moz-range-thumb {
+  background-color: #ccc; /* Set background color as needed */
+  border-color: #999; /* Set border color as needed */
+}
+
+.ser-range-secondary-small:disabled::-ms-thumb,
+.ser-range-secondary-medium:disabled::-ms-thumb,
+.ser-range-secondary-large:disabled::-ms-thumb {
+  background-color: #ccc; /* Set background color as needed */
+  border-color: #999; /* Set border color as needed */
+}
+
+/* Targeting the range input with the specified classes */
+.ser-range-primary-small,
+.ser-range-primary-medium,
+.ser-range-primary-large {
+  width: 100%; /* Set the width as needed */
+  margin: 10px 0; /* Set margin as needed */
+}
+
+/* Styling the thumb for the specified classes in WebKit/Blink browsers (Chrome, Safari) */
+.ser-range-primary-small::-webkit-slider-thumb,
+.ser-range-primary-medium::-webkit-slider-thumb,
+.ser-range-primary-large::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; /* Set width as needed */
+  height: 16px; /* Set height as needed */
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Styling the thumb for the specified classes in Mozilla Firefox */
+.ser-range-primary-small::-moz-range-thumb,
+.ser-range-primary-medium::-moz-range-thumb,
+.ser-range-primary-large::-moz-range-thumb {
+  width: 16px; /* Set width as needed */
+  height: 16px; /* Set height as needed */
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Styling the thumb for the specified classes in Microsoft Edge and IE */
+.ser-range-primary-small::-ms-thumb,
+.ser-range-primary-medium::-ms-thumb,
+.ser-range-primary-large::-ms-thumb {
+  width: 16px; /* Set width as needed */
+  height: 16px; /* Set height as needed */
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Optional: Styling for the track for the specified classes */
+.ser-range-primary-small::-webkit-slider-runnable-track,
+.ser-range-primary-medium::-webkit-slider-runnable-track,
+.ser-range-primary-large::-webkit-slider-runnable-track {
+  background-color: var(--primary-color);
+  height: 4px; /* Set height as needed */
+  border-radius: 2px; /* Set border radius as needed */
+}
+
+.ser-range-primary-small::-moz-range-track,
+.ser-range-primary-medium::-moz-range-track,
+.ser-range-primary-large::-moz-range-track {
+  background-color: var(--primary-color);
+  height: 4px; /* Set height as needed */
+  border-radius: 2px; /* Set border radius as needed */
+}
+
+.ser-range-primary-small::-ms-track,
+.ser-range-primary-medium::-ms-track,
+.ser-range-primary-large::-ms-track {
+  background-color: var(--primary-color);
+  height: 4px; /* Set height as needed */
+  border-radius: 2px; /* Set border radius as needed */
+}
+
+/* Optional: Styling for the thumb when the slider is disabled for the specified classes */
+.ser-range-primary-small:disabled::-webkit-slider-thumb,
+.ser-range-primary-medium:disabled::-webkit-slider-thumb,
+.ser-range-primary-large:disabled::-webkit-slider-thumb {
+  background-color: #ccc; /* Set background color as needed */
+  border-color: #999; /* Set border color as needed */
+}
+
+.ser-range-primary-small:disabled::-moz-range-thumb,
+.ser-range-primary-medium:disabled::-moz-range-thumb,
+.ser-range-primary-large:disabled::-moz-range-thumb {
+  background-color: #ccc; /* Set background color as needed */
+  border-color: #999; /* Set border color as needed */
+}
+
+.ser-range-primary-small:disabled::-ms-thumb,
+.ser-range-primary-medium:disabled::-ms-thumb,
+.ser-range-primary-large:disabled::-ms-thumb {
+  background-color: #ccc; /* Set background color as needed */
+  border-color: #999; /* Set border color as needed */
+}
+
+.ser-text-color-primary {
+  color: var(--primary-color);
+}
+
+.ser-text-color-secondary {
+  color: var(--secondary-color);
+}
+
+.ser-text-color-danger {
+  color: var(--danger-color);
+}
+
+.ser-text-color-warning {
+  color: var(--warning-color);
+}
+
+.ser-text-color-success {
+  color: var(--success-color);
+}
+
+.ser-snackbar-success {
+  background-color: var(--success-color);
+  padding: 0.8rem;
+  color: white;
+}
+.ser-snackbar-warning {
+  background-color: var(--warning-color);
+  padding: 0.8rem;
+  color: white;
+}
+
+.ser-snackbar-danger {
+  background-color: var(--danger-color);
+  padding: 0.8rem;
+  color: white;
+}
+
+/* Accordian styles */
+
+details.accordian-primary-small,
+details.accordian-primary-medium,
+details.accordian-primary-large {
+  /* border: solid 1px lightgray; */
+  background-color: aliceblue;
+}
+
+details.accordian-primary-small > summary,
+details.accordian-secondary-small > summary {
+  /* padding: 0.5rem; */
+  font-size: 0.8rem;
+}
+
+details.accordian-primary-medium > summary,
+details.accordian-secondary-medium > summary {
+  /* padding: 1rem; */
+  font-size: 1rem;
+}
+
+details.accordian-primary-large > summary,
+details.accordian-secondary-large > summary {
+  /* padding: 1.5rem; */
+  font-size: 1.5rem;
+}
+
+details.accordian-secondary-small,
+details.accordian-secondary-medium,
+details.accordian-secondary-large {
+  /* border: solid 1px lightgray; */
+  background-color: aliceblue;
+}
+
+details div {
+  padding: 10px;
+}
+
+.accordian-primary-small > summary,
+.accordian-primary-medium > summary,
+.accordian-primary-large > summary {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px;
+  /*   list-style: none;
+     */
+  /*   background: url(arrow.svg) no-repeat 14px 50%;
+     */
+  background-size: 18px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordian-secondary-small > summary,
+.accordian-secondary-medium > summary,
+.accordian-secondary-large > summary {
+  background-color: var(--secondary-color);
+  color: white;
+  padding: 10px;
+  /*   list-style: none;
+     */
+  /*   background: url(arrow.svg) no-repeat 14px 50%;
+     */
+  background-size: 18px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+summary::marker {
+  color: red;
+  font-size: 1.2em;
+  list-style-position: outside;
+  /*   margin-left: 30px;
+    padding: 10px 10px 10px 20px;
+    border-radius: 5px; */
+}
+
+summary::after {
+  content: "+";
+  /*   width: 18px;
+    height: 10px; */
+  background-size: cover;
+  margin-left: 0.75em;
+  transition: 1s;
+}
+
+details[open] > summary::after {
+  /*   transform: rotate(135deg);
+     */
+  content: "-";
+  transition: 1s;
+}
+
+/* summary::-webkit-details-marker {
+    display: none;
+  } */
