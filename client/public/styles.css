@@ -257,7 +257,23 @@ a:hover {
   z-index: 9999;
 }
 
+.user-dropdown-content {
+  margin-top: 0px;
+  display: none;
+  position: absolute;
+  background-color: aliceblue;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  padding: 1rem;
+  text-align: left;
+}
+
 .dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.lucide-user-header-icon:hover .user-dropdown-content {
   display: block;
 }
 

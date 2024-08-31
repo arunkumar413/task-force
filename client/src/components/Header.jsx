@@ -79,7 +79,7 @@ export function Header() {
         {auth.username && <span> Logged in as {auth.email}</span>}
         {auth.username && <button onClick={handleLogout}> Logout </button>}
       </nav>
-      <div style={{ gridColumn: "11/12" }}>
+      <div style={{ gridColumn: "11/12" }} className="lucide-user-header-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -95,6 +95,9 @@ export function Header() {
           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
         </svg>
+        <div className="user-dropdown-content">
+          {auth.username && <span> {auth.email}</span>}
+        </div>
       </div>
     </header>
   );
