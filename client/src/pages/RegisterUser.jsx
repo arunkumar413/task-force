@@ -37,7 +37,7 @@ export function RegisterUser() {
         gap: "1rem",
       }}
     >
-      <Header />
+      {/* <Header /> */}
 
       <h2> Register User</h2>
       <div className="form-element-style">

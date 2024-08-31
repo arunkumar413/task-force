@@ -7,7 +7,6 @@ import {
   useRecoilValue,
 } from "recoil";
 
-import "../app.css";
 import { Link } from "react-router-dom";
 import { Header } from "../components/Header";
 import { useSelector, useDispatch } from "react-redux";

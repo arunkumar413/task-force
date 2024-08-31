@@ -1,30 +1,53 @@
 import * as React from "react";
 import { createBrowserRouter } from "react-router-dom";
-import { About } from "./pages/About";
-import { Contact } from "./pages/Contact";
-import { Home } from "./pages/Home";
+import { ContactPage } from "./pages/ContactPage";
+import { AboutPage } from "./pages/AboutPage";
+import { TaskPage } from "./pages/TaskPage";
+import { CreateNewTaskPage } from "./pages/CreateNewTaskPage";
+import { EditTaskPage } from "./pages/EditTaskPage";
+
 import { LoginPage } from "./pages/Login";
 import { RegisterUser } from "./pages/RegisterUser";
+import { Layout } from "./pages/Layout";
+import App from "./pages/App";
 
 export const AppRouter = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
-  },
-  {
-    path: "/about",
-    element: <About />,
-  },
-  {
-    path: "/contact",
-    element: <Contact />,
-  },
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/register",
-    element: <RegisterUser />,
+    element: <Layout />,
+    children: [
+      {
+        path: "/",
+        element: <App />,
+      },
+      {
+        path: "/contact",
+        element: <ContactPage />,
+      },
+      {
+        path: "/about",
+        element: <AboutPage />,
+      },
+      {
+        path: "/login",
+        element: <LoginPage />,
+      },
+      {
+        path: "/register",
+        element: <RegisterUser />,
+      },
+      {
+        path: "/task/:task_id",
+        element: <TaskPage />,
+      },
+      {
+        path: "/add-new-task",
+        element: <CreateNewTaskPage />,
+      },
+      {
+        path: "/task/:task_id/edit",
+        element: <EditTaskPage />,
+      },
+    ],
   },
 ]);

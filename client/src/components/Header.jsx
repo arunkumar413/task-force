@@ -66,6 +66,7 @@ export function Header() {
           flexDirection: "row",
           justifyContent: "flex-start",
           gap: "1rem",
+          gridColumn: "1/13",
         }}
       >
         <Link to="/"> Home </Link>
@@ -73,6 +74,8 @@ export function Header() {
         <Link to="/about"> About </Link>
         <Link to="/login"> Login </Link>
         <Link to="/register"> Register </Link>
+        <Link to="/add-new-task"> New task </Link>
+
         {auth.username && <span> Logged in as {auth.email}</span>}
         {auth.username && <button onClick={handleLogout}> Logout </button>}
       </nav>

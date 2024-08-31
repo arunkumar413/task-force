@@ -32,6 +32,9 @@ module.exports = {
   devServer: {
     port: 3031, // you can change the port
     historyApiFallback: true, // For single-page applications
+    static: {
+      directory: path.join(__dirname, "public"),
+    },
   },
   module: {
     rules: [

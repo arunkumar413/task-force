@@ -12,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "date-fns": "^2.30.0",
+    "react-markdown": "^9.0.0",
     "@reduxjs/toolkit": "^2.2.5",
     "dotenv": "^16.4.5",
     "localforage": "^1.10.0",
