@@ -67,6 +67,7 @@ export function Header() {
           justifyContent: "flex-start",
           gap: "1rem",
           gridColumn: "1/10",
+          alignItems: "center",
         }}
       >
         <Link to="/"> Home </Link>

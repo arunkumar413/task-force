@@ -218,7 +218,13 @@ body {
 .ser-input-secondary-large-filled,
 .ser-input-secondary-small-outlined,
 .ser-input-secondary-medium-outlined,
-.ser-input-secondary-large-outlined {
+.ser-input-secondary-large-outlined,
+.ser-input-normal-small-outlined,
+.ser-input-normal-medium-outlined,
+.ser-input-normal-large-outlined,
+.ser-input-normal-small-filled,
+.ser-input-normal-medium-filled,
+.ser-input-normal-large-filled {
   outline: none;
   border: none;
 }
@@ -228,21 +234,27 @@ body {
 .ser-input-primary-small-filled,
 .ser-input-primary-small-outlined,
 .ser-input-secondary-small-filled,
-.ser-input-secondary-small-outlined {
+.ser-input-secondary-small-outlined,
+.ser-input-normal-small-outlined,
+.ser-input-normal-small-filled {
   padding: var(--small-button-padding);
 }
 
 .ser-input-primary-medium-filled,
 .ser-input-primary-medium-outlined,
 .ser-input-secondary-medium-filled,
-.ser-input-secondary-medium-outlined {
+.ser-input-secondary-medium-outlined,
+.ser-input-normal-medium-outlined,
+.ser-input-normal-medium-filled {
   padding: var(--medium-button-padding);
 }
 
 .ser-input-primary-large-filled,
 .ser-input-primary-large-outlined,
 .ser-input-secondary-large-filled,
-.ser-input-secondary-large-outlined {
+.ser-input-secondary-large-outlined,
+.ser-input-normal-large-outlined,
+.ser-input-normal-large-filled {
   padding: var(--large-button-padding);
 }
 
@@ -276,6 +288,21 @@ body {
   background-color: white;
 }
 
+/* Inut variant normal styles */
+
+.ser-input-normal-small-outlined,
+.ser-input-normal-medium-outlined,
+.ser-input-normal-large-outlined {
+  border: solid lightgray 1px;
+}
+
+.ser-input-normal-small-filled,
+.ser-input-normal-medium-filled,
+.ser-input-normal-large-filled {
+  border-bottom: solid gray 1px;
+  background-color: #f7f7f7;
+}
+
 .ser-round {
   border-radius: var(--round-radius);
 }
@@ -292,6 +319,10 @@ body {
   background-color: var(--primary-color);
   color: var(--btn-primary-font-color);
   border: none;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
 }
 
 .ser-tag-primary-outlined {

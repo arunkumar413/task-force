@@ -41,7 +41,7 @@ export function CreateNewTaskPage() {
         className="new-task-heading round"
       >
         <h2> Create new task</h2>
-        <button className="ser-btn-primary-small">Save</button>
+        <button className="ser-btn-primary-small ser-round">Save</button>
       </div>
       <div className="new-task-form">
         <label> Task title </label>
@@ -50,7 +50,7 @@ export function CreateNewTaskPage() {
           onChange={handleNewTaskInfo}
           selectedValue
           placeholder="Title"
-          className="input small primary filled"
+          className="ser-input-normal-small-outlined"
           type="text"
         />
         <div
@@ -84,7 +84,7 @@ export function CreateNewTaskPage() {
             onChange={handleNewTaskInfo}
             name="user"
             type="text"
-            className="input small primary filled"
+            className="ser-input-normal-small-outlined"
           />
 
           <label> Due date</label>
@@ -92,12 +92,12 @@ export function CreateNewTaskPage() {
             onChange={handleNewTaskInfo}
             name="dueDate"
             type="date"
-            className="input small primary filled"
+            className="ser-input-normal-small-outlined"
           />
         </div>
         <label> Description (supports markdown) </label>
         <textarea
-          className="input primary filled"
+          className="ser-input-normal-small-outlined"
           onChange={handleNewTaskInfo}
           name="description"
           rows={10}

@@ -1,14 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Labels } from "../components/Labels";
+import { DropDown } from "../components/DropDown";
 
 export function EditTaskPage() {
   const selectedTask = useSelector((state) => state.tasks.selectedTask);
   const [selectedLabels, setSelectedLabels] = useState([]);
+  const [selectedPriority, setSelectedPriority] = useState("Select priority");
+  const [selectedStatus, setSelectedStatus] = useState("Select status");
 
   function handleEditTaskInfo() {}
 
   useEffect(function () {}, [selectedLabels]);
+
+  function handleSelectPriority(selItem) {
+    setSelectedPriority(selItem);
+  }
+
+  function handleSelectStatus(selItem) {
+    setSelectedStatus(selItem);
+  }
 
   return (
     <div className="EditTaskPage" style={{ padding: "1rem" }}>
@@ -37,7 +48,7 @@ export function EditTaskPage() {
           name="title"
           onChange={handleEditTaskInfo}
           placeholder="Title"
-          className="ser-input-primary-small-outlined"
+          className="ser-input-normal-small-outlined"
           type="text"
         />
 
@@ -52,35 +63,20 @@ export function EditTaskPage() {
           }}
         >
           <label>Priority</label>
-          <input
-            value={selectedTask.priority}
-            onChange={handleEditTaskInfo}
-            name="priority"
-            type="text"
-            list="select-priority"
-            className="ser-input-primary-small-outlined"
+
+          <DropDown
+            options={["Low", "Medium", "High", "Urgent"]}
+            value={selectedPriority}
+            handleSelected={handleSelectPriority}
           />
-          <datalist id="select-priority">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Urgent">Urgent</option>
-          </datalist>
 
           <label>Status</label>
-          <input
-            value={selectedTask.status}
-            onChange={handleEditTaskInfo}
-            name="status"
-            type="text"
-            list="select-status"
-            className="ser-input-primary-small-outlined"
+
+          <DropDown
+            options={["In progress", "Backlog", "Done"]}
+            value={selectedStatus}
+            handleSelected={handleSelectStatus}
           />
-          <datalist id="select-status">
-            <option value="In progress">In progress</option>
-            <option value="Backlog"> Backlog</option>
-            <option value="Done">Done</option>
-          </datalist>
 
           <label> Assign to</label>
           <input
@@ -88,7 +84,7 @@ export function EditTaskPage() {
             onChange={handleEditTaskInfo}
             name="user"
             type="text"
-            className="ser-input-primary-small-outlined"
+            className="ser-input-normal-small-outlined"
           />
 
           <label> Due date</label>
@@ -97,14 +93,14 @@ export function EditTaskPage() {
             onChange={handleEditTaskInfo}
             name="dueDate"
             type="date"
-            className="ser-input-primary-small-outlined"
+            className="ser-input-normal-small-outlined"
           />
         </div>
 
         <label> Description (supports markdown) </label>
         <textarea
           value={selectedTask.description}
-          className="ser-input-primary-small-outlined"
+          className="ser-input-normal-small-outlined"
           onChange={handleEditTaskInfo}
           name="description"
           rows={10}

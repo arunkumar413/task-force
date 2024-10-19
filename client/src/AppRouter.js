@@ -10,6 +10,7 @@ import { LoginPage } from "./pages/Login";
 import { RegisterUser } from "./pages/RegisterUser";
 import { Layout } from "./pages/Layout";
 import App from "./pages/App";
+import { ViewPage } from "./pages/ViewPage";
 
 export const AppRouter = createBrowserRouter([
   {
@@ -47,6 +48,10 @@ export const AppRouter = createBrowserRouter([
       {
         path: "/task/:task_id/edit",
         element: <EditTaskPage />,
+      },
+      {
+        path: "/view/:viewId",
+        element: <ViewPage />,
       },
     ],
   },

@@ -10,18 +10,23 @@ export function DropDown({ options, value, handleSelected }) {
   const optionElements = options.map(function (item, index) {
     return (
       <>
-        <li onClick={(evt) => handleSelect(evt, item)}>{item}</li>
+        <li key={index.toString()} onClick={(evt) => handleSelect(evt, item)}>
+          {item}
+        </li>
       </>
     );
   });
 
   return (
     <div class="dropdown">
-      <button className="btn primary small outlined" style={{textAlign:"center",verticalAlign:"middle"}} >
+      <button
+        className="btn primary small outlined"
+        style={{ textAlign: "center", verticalAlign: "middle" }}
+      >
         {" "}
         {value}
         <svg
-        //  style={{verticalAlign:"middle"}}
+          //  style={{verticalAlign:"middle"}}
           xmlns="http://www.w3.org/2000/svg"
           width="24"
           height="24"
@@ -36,7 +41,7 @@ export function DropDown({ options, value, handleSelected }) {
           <path d="m6 9 6 6 6-6" />
         </svg>{" "}
       </button>
-      <ol class="dropdown-content">{optionElements}</ol>
+      <ol className="dropdown-content">{optionElements}</ol>
     </div>
   );
 }

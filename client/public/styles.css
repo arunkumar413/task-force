@@ -214,10 +214,9 @@ main {
 }
 
 a {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
   text-decoration: none;
   border-radius: 0.5rem;
+  padding: 0.5rem;
 }
 
 a:hover {

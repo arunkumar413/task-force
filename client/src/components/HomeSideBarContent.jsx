@@ -11,6 +11,7 @@ import {
   setMediumSelected,
   setUrgentSelected,
 } from "../store/tasksFilterSlice";
+import { Link } from "react-router-dom";
 
 export function HomeSideBarContent() {
   const count = useSelector((state) => state.value);
@@ -102,6 +103,9 @@ export function HomeSideBarContent() {
       <label htmlFor="docs"> Documentation</label> <br />
       <input type="checkbox" id="testing" name="testing" value="testing" />
       <label htmlFor="testing"> Testing</label> <br />
+      <h4> My Views </h4>
+      <Link to="/view/123">My tasks (8) </Link>
+      <Link to="/view/145">My Team (20) </Link>
     </>
   );
 }
