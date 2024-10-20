@@ -71,16 +71,16 @@ export function Header() {
         }}
       >
         <Link to="/"> Home </Link>
-        <Link to="/contact"> Contact </Link>
-        <Link to="/about"> About </Link>
-        <Link to="/login"> Login </Link>
-        <Link to="/register"> Register </Link>
+        {/* <Link to="/contact"> Contact </Link>
+        <Link to="/about"> About </Link> */}
+
         <Link to="/add-new-task"> New task </Link>
+        <Link to="/create-view"> Create view </Link>
 
         {auth.username && <span> Logged in as {auth.email}</span>}
         {auth.username && <button onClick={handleLogout}> Logout </button>}
       </nav>
-      <div style={{ gridColumn: "11/12" }} className="lucide-user-header-icon">
+      <div style={{ gridColumn: "10/11" }} className="lucide-user-header-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -99,6 +99,12 @@ export function Header() {
         <div className="user-dropdown-content">
           {auth.username && <span> {auth.email}</span>}
         </div>
+      </div>
+      <div>
+        <Link to="/login"> Login </Link>
+      </div>
+      <div>
+        <Link to="/register"> Register </Link>
       </div>
     </header>
   );

@@ -11,6 +11,7 @@ import { RegisterUser } from "./pages/RegisterUser";
 import { Layout } from "./pages/Layout";
 import App from "./pages/App";
 import { ViewPage } from "./pages/ViewPage";
+import { CreateViewPage } from "./pages/CreateViewPage";
 
 export const AppRouter = createBrowserRouter([
   {
@@ -52,6 +53,10 @@ export const AppRouter = createBrowserRouter([
       {
         path: "/view/:viewId",
         element: <ViewPage />,
+      },
+      {
+        path: "/create-view",
+        element: <CreateViewPage />,
       },
     ],
   },

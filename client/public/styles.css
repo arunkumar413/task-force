@@ -312,3 +312,33 @@ a:hover {
 hr {
   color: aliceblue;
 }
+
+.create-view-page-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f1f3f6;
+  border-radius: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.create-view-page-selection-container {
+  /* border: solid 1px lightgrey; */
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.search-label-element:hover {
+  background-color: aliceblue;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.search-labels-contianer {
+  border: solid 0.5px lightgrey;
+  padding: 0.5rem;
+  height: 250px;
+  overflow: scroll;
+}
