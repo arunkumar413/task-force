@@ -43,10 +43,26 @@ export function TaskPage() {
 
   useEffect(function () {}, [selectedTask]);
 
+  const commentAttachmentElements = [1, 2, 3, 4, 5].map(function () {
+    return (
+      <img
+        style={{ width: 60, height: 60 }}
+        src="https://dummyimage.com/100x100/c9c1c9/121214.png&text=attachment"
+      />
+    );
+  });
+
   const commentElements = comments.map(function (item, index) {
     return (
       <div key={index.toString()} className="comment-item">
-        <Markdown>{item.comment}</Markdown>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>
+            <Markdown>{item.comment}</Markdown>
+          </div>
+          <div className="comment-attachment-container">
+            {commentAttachmentElements}
+          </div>
+        </div>
         {/* <p>{item.comment}</p> */}
         <div className="comment-footer">
           <span className="commented-by">{item.commentedBy}</span>
@@ -170,7 +186,7 @@ export function TaskPage() {
           rows={5}
           cols={100}
         />
-        <button className="btn primary small filled"> Add comment </button>
+        <button className="ser-btn-primary-small"> Add comment </button>
       </div>
 
       <div className="selected-task-modal-footer">

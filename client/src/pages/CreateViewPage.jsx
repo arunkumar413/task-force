@@ -175,6 +175,15 @@ export function CreateViewPage() {
         <h2>Create new view </h2>
         <button className="ser-btn-primary-small ser-round"> Save</button>
       </div>
+      <div className="create-view-page-selection-container">
+        <label>
+          <h3> View name </h3>
+          <input
+            className="ser-input-normal-small-outlined"
+            placeholder="Enter a name for the view"
+          />
+        </label>
+      </div>
       <div
         className="test2"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}
