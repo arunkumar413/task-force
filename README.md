@@ -1,8 +1,13 @@
-# webpack-react-express-template
+# Task Force
 
-A simple template to run webpack,react and express server.
+Task force is a professional grade task management application focussing the ease of use, simplicity and yet packed with features. We believe that a tool in itself shouldn't be burnden in doing our work in professional lives. Most task managemnt tools such as Jira just reflect the organizational complicance process in the UI. Task force, in contrast lays the emphasis on how the user can effectively manage, document, list down, view, orgaize, convey and configure the tasks uisng an elegant thoughfully crafted UI/UX.
 
-Webpack+React+React router+Redux toolkit + Express + Server side session + RBAC
+Tech stack:
+
+1. React
+2. Express
+3. Serene UI( https://github.com/arunkumar413/serene-UI)
+4. Nodejs
 
 ## directory structure
 

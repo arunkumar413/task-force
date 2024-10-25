@@ -8,6 +8,8 @@ import {
   useNavigate,
   useNavigation,
 } from "react-router-dom";
+import { AttachmentCarousel } from "../components/AttachmentCarousel";
+import { fakeAttachmentData } from "../dummyData/fakeAttachmentData";
 
 export function TaskPage() {
   const location = useLocation();
@@ -60,7 +62,7 @@ export function TaskPage() {
             <Markdown>{item.comment}</Markdown>
           </div>
           <div className="comment-attachment-container">
-            {commentAttachmentElements}
+            <AttachmentCarousel attachmentData={fakeAttachmentData} />
           </div>
         </div>
         {/* <p>{item.comment}</p> */}
