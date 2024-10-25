@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Labels } from "../components/Labels";
 import { DropDown } from "../components/DropDown";
+import { SelectLabels } from "../components/SelectLabels";
+import { ALL_LABELS } from "../constants";
 
 export function CreateNewTaskPage() {
   const [selectedOption, setSelectedOption] = useState("Select Priority");
@@ -103,7 +105,12 @@ export function CreateNewTaskPage() {
           rows={10}
         />
         <p> Select labels</p>
-        <Labels
+        {/* <Labels
+          selectedLabels={selectedLabels}
+          setSelectedLabels={setSelectedLabels}
+        /> */}
+        <SelectLabels
+          LabelsData={ALL_LABELS}
           selectedLabels={selectedLabels}
           setSelectedLabels={setSelectedLabels}
         />
