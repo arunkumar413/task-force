@@ -108,7 +108,7 @@ body {
 }
 
 .comment-item {
-  padding: 0.5rem;
+  padding-bottom: 0.5rem;
   border-bottom: solid 0.5px lightgrey;
 }
 
