@@ -350,3 +350,29 @@ hr {
   align-items: center;
   gap: 0.5rem;
 }
+
+.drop-down-list-show {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  position: absolute;
+  border: solid 0.5px lightgrey;
+  padding: 0.5rem;
+  z-index: 9999;
+  background-color: aliceblue;
+}
+
+.drop-down-list-hide {
+  display: none;
+}
+
+.drop-down-option {
+  padding: 0.5rem;
+  width: 99%;
+}
+
+.drop-down-option:hover {
+  background-color: lightgray;
+  cursor: pointer;
+}

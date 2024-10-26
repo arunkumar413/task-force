@@ -3,10 +3,18 @@ import { Labels } from "../components/Labels";
 import { DropDown } from "../components/DropDown";
 import { SelectLabels } from "../components/SelectLabels";
 import { ALL_LABELS } from "../constants";
+import { UserSelectDropDown } from "../components/UserSelectDropDown";
+import { USER_DATA } from "../dummyData/userData";
 
 export function CreateNewTaskPage() {
   const [selectedOption, setSelectedOption] = useState("Select Priority");
   const [progress, setProgress] = useState("Select progress");
+  const [selectedItem, setSelectedItem] = useState({
+    id: 0,
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
 
   const [newTaskInfo, setNewTaskInfo] = useState({
     title: "",
@@ -50,7 +58,7 @@ export function CreateNewTaskPage() {
         <input
           name="title"
           onChange={handleNewTaskInfo}
-          selectedValue
+          value={newTaskInfo.title}
           placeholder="Title"
           className="ser-input-normal-small-outlined"
           type="text"
@@ -82,11 +90,17 @@ export function CreateNewTaskPage() {
           />
 
           <label> Assign to</label>
-          <input
+          {/* <input
             onChange={handleNewTaskInfo}
             name="user"
             type="text"
             className="ser-input-normal-small-outlined"
+          /> */}
+          <UserSelectDropDown
+            inputClassName="ser-input-normal-small-outlined"
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
+            dropDownData={USER_DATA}
           />
 
           <label> Due date</label>

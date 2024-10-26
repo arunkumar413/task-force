@@ -9,11 +9,9 @@ export function DropDown({ options, value, handleSelected }) {
 
   const optionElements = options.map(function (item, index) {
     return (
-      <>
-        <li key={index.toString()} onClick={(evt) => handleSelect(evt, item)}>
-          {item}
-        </li>
-      </>
+      <React.Fragment key={index}>
+        <li onClick={(evt) => handleSelect(evt, item)}>{item}</li>
+      </React.Fragment>
     );
   });
 
