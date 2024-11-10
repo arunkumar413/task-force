@@ -4,9 +4,10 @@ const { checkAuthorization } = require("../middlewares/checkAuthroization");
 const {
   loginController,
   logoutController,
-  registerController
+  registerController,
 } = require("../controllers/loginController");
 const { getMyTasks } = require("../controllers/tasksController");
+const { getTaskData } = require("../controllers/getTaskData");
 
 const router = express.Router();
 
@@ -16,6 +17,8 @@ router.get(
   checkAuthorization({ resource: "/pets", rolesWithAccess: ["VP", "QA"] }),
   getMyTasks
 );
+
+router.get("/task-data/:taskId", checkAuthentication, getTaskData);
 
 router.post("/login", loginController);
 router.post("/logout", logoutController);

@@ -74,3 +74,122 @@ export function sortItems(items) {
 
   return sortedItems;
 }
+
+export function transformTaskData() {
+  let data = [
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment",
+      comment_t_id: 2,
+      attch_id: 1,
+      file_name: "test file 1",
+      comment_id: 2,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment",
+      comment_t_id: 2,
+      attch_id: 2,
+      file_name: "test file 2",
+      comment_id: 2,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment",
+      comment_t_id: 2,
+      attch_id: 3,
+      file_name: "test file 3",
+      comment_id: 2,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment 2",
+      comment_t_id: 3,
+      attch_id: 4,
+      file_name: "test file 4",
+      comment_id: 3,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment 2",
+      comment_t_id: 3,
+      attch_id: 5,
+      file_name: "test file 5",
+      comment_id: 3,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment 2",
+      comment_t_id: 3,
+      attch_id: 6,
+      file_name: "test file 6",
+      comment_id: 3,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment 4",
+      comment_t_id: 5,
+      attch_id: null,
+      file_name: null,
+      comment_id: null,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment 5",
+      comment_t_id: 6,
+      attch_id: null,
+      file_name: null,
+      comment_id: null,
+    },
+    {
+      task_id: 5,
+      task_title: "My task one",
+      comment: "test comment 3",
+      comment_t_id: 4,
+      attch_id: null,
+      file_name: null,
+      comment_id: null,
+    },
+  ];
+
+  const transformedData = {};
+  data.forEach((item) => {
+    if (!transformedData[item.task_id]) {
+      transformedData[item.task_id] = {
+        taskId: item.task_id,
+        task_title: item.task_title,
+        file_name: null,
+        comments: [],
+      };
+    }
+
+    const commentIndex = transformedData[item.task_id].comments.findIndex(
+      (comment) => comment.comment_t_id === item.comment_t_id
+    );
+
+    if (commentIndex === -1) {
+      transformedData[item.task_id].comments.push({
+        comment_t_id: item.comment_t_id,
+        comment: item.comment,
+        attachments: [{ attch_id: item.attch_id, file_name: item.file_name }],
+      });
+    } else {
+      transformedData[item.task_id].comments[commentIndex].attachments.push({
+        attch_id: item.attch_id,
+        file_name: item.file_name,
+      });
+    }
+  });
+
+  const finalData = Object.values(transformedData);
+
+  console.log(JSON.stringify(finalData));
+}

@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import { AttachmentCarousel } from "../components/AttachmentCarousel";
 import { fakeAttachmentData } from "../dummyData/fakeAttachmentData";
+import { API_URL } from "../constants";
 
 export function TaskPage() {
   const location = useLocation();
@@ -43,7 +44,29 @@ export function TaskPage() {
     },
   ]);
 
-  useEffect(function () {}, [selectedTask]);
+  useEffect(
+    function () {
+      async function getData() {
+        let res = await fetch(`${API_URL}/task-data/${5}`, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "GET",
+          credentials: "include",
+        });
+        if (res.status === 200) {
+          let data = await res.json();
+          const grouped = Object.groupBy(
+            data,
+            ({ comment_t_id }) => comment_t_id
+          );
+          console.log(JSON.stringify(data));
+        }
+      }
+      getData();
+    },
+    [selectedTask]
+  );
 
   const commentAttachmentElements = [1, 2, 3, 4, 5].map(function () {
     return (
