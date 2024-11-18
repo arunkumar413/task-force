@@ -8,24 +8,7 @@ export function Header() {
   const dispatch = useDispatch();
   const auth = useSelector((state) => state.auth);
 
-  useEffect(
-    function () {
-      let userObj = localStorage.getItem("userInfo");
-      if (userObj) {
-        let userJson = JSON.parse(userObj);
-        dispatch(
-          setUserInfo({
-            username: userJson.username,
-            email: userJson.email,
-            isLoggedIn: true,
-          })
-        );
-      }
-    },
-    [auth]
-  );
-
-  useEffect(function () {
+  useEffect(() => {
     let userObj = localStorage.getItem("userInfo");
     if (userObj) {
       let userJson = JSON.parse(userObj);
@@ -37,7 +20,7 @@ export function Header() {
         })
       );
     }
-  }, []);
+  }, []); // only on component mount
 
   async function handleLogout() {
     let res = await fetch("http://localhost:3000/api/logout", {
@@ -109,3 +92,5 @@ export function Header() {
     </header>
   );
 }
+
+
