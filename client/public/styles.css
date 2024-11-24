@@ -376,3 +376,7 @@ hr {
   background-color: lightgray;
   cursor: pointer;
 }
+
+.micro-task-item:hover {
+  background-color: #f1f3f6;
+}

@@ -11,38 +11,16 @@ import {
 import { AttachmentCarousel } from "../components/AttachmentCarousel";
 import { fakeAttachmentData } from "../dummyData/fakeAttachmentData";
 import { API_URL } from "../constants";
+import { transformTaskData } from "../../util";
+import { Comment } from "../components/Comment";
+import { MicroTasks } from "../components/MicroTasks";
+import { FAKE_TASK_DATA } from "../dummyData/fakeTaskData";
 
 export function TaskPage() {
   const location = useLocation();
   const selectedTask = useSelector((state) => state.tasks.selectedTask);
-
-  const [comments, setComments] = useState([
-    {
-      comment:
-        "### Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-      commentedBy: "Arun",
-      date: new Date().toISOString(),
-    },
-
-    {
-      comment:
-        "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-      commentedBy: "Arun",
-      date: new Date().toISOString(),
-    },
-    {
-      comment:
-        "Lorem Ipsum is simply dummy text of the printing and typesetting industry.Lorem Ipsum is simply dummy text of the printing and typesetting industry.Lorem Ipsum is simply dummy text of the printing and typesetting industry.Lorem Ipsum is simply dummy text of the printing and typesetting industry.Lorem Ipsum is simply dummy text of the printing and typesetting industry.Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-      commentedBy: "Arun",
-      date: new Date().toISOString(),
-    },
-    {
-      comment:
-        "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-      commentedBy: "Arun",
-      date: new Date().toISOString(),
-    },
-  ]);
+  const [transformedData, setTransformedData] = useState(FAKE_TASK_DATA);
+  const [newComment, setNewComment] = useState("");
 
   useEffect(
     function () {
@@ -60,7 +38,7 @@ export function TaskPage() {
             data,
             ({ comment_t_id }) => comment_t_id
           );
-          console.log(JSON.stringify(data));
+          // setTransformedData(data);  // uncomment to use data from DB
         }
       }
       getData();
@@ -68,55 +46,21 @@ export function TaskPage() {
     [selectedTask]
   );
 
-  const commentAttachmentElements = [1, 2, 3, 4, 5].map(function () {
-    return (
-      <img
-        style={{ width: 60, height: 60 }}
-        src="https://dummyimage.com/100x100/c9c1c9/121214.png&text=attachment"
-      />
-    );
-  });
+  const commentCompElements =
+    transformedData.length > 0 &&
+    transformedData[0].task_json.comments.map(function (item, index) {
+      return (
+        <Comment
+          key={index.toString()}
+          email={item.email}
+          comment={item.comment}
+          attachments={item.attachments}
+        />
+      );
+    });
 
-  const commentElements = comments.map(function (item, index) {
-    return (
-      <div key={index.toString()} className="comment-item">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <Markdown>{item.comment}</Markdown>
-            <div className="comment-footer">
-              <span className="commented-by">{item.commentedBy}</span>
-              <span className="commented-date">
-                {new Date(item.date).toDateString()}
-              </span>
-            </div>
-          </div>
-          <div className="comment-attachment-container">
-            <AttachmentCarousel attachmentData={fakeAttachmentData} />
-          </div>
-        </div>
-        {/* <p>{item.comment}</p> */}
-      </div>
-    );
-  });
-
-  function addClass(priority) {
-    if (priority === "High") {
-      return "high";
-    } else if (priority === "Low") {
-      return "low";
-    } else if (priority === "Medium") {
-      return "medium-priority";
-    } else if (priority === "Urgent") {
-      return "urgent";
-    } else {
-      return "";
-    }
+  function handleCommentInputChange(evt) {
+    setNewComment(evt.target.value);
   }
 
   return (
@@ -178,7 +122,7 @@ export function TaskPage() {
           </svg>
           <p> {selectedTask.status}</p>
         </div>
-        <p className={addClass(selectedTask.priority)}>
+        <p className={selectedTask.priority.toLowerCase()}>
           {" "}
           {selectedTask.priority}
         </p>
@@ -205,24 +149,15 @@ export function TaskPage() {
 
       <div className="selected-task-page-body">
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          {/* <p className="task-description">{selectedTask.description}</p> */}
           <p className="task-description">
-            Lorem Ipsum is simply dummy text of the printing and typesetting
-            industry. Lorem Ipsum has been the industry's standard dummy text
-            ever since the 1500s, when an unknown printer took a galley of type
-            and scrambled it to make a type specimen book. It has survived not
-            only five centuries, but also the leap into electronic typesetting,
-            remaining essentially unchanged. It was popularised in the 1960s
-            with the release of Letraset sheets containing Lorem Ipsum passages,
-            and more recently with desktop publishing software like Aldus
-            PageMaker including versions of Lorem Ipsum.
+            {transformedData.length > 0 &&
+              transformedData[0].task_json.description}
           </p>
-
           <AttachmentCarousel attachmentData={fakeAttachmentData} />
         </div>
-
+        <MicroTasks />
         <div className="selected-task-page-comments-container">
-          {commentElements}
+          {commentCompElements}
         </div>
 
         <textarea
@@ -231,9 +166,17 @@ export function TaskPage() {
           placeholder="Add a new comment"
           rows={5}
           cols={100}
+          onChange={handleCommentInputChange}
         />
-        <button style={{ marginTop: "1rem" }} className="ser-btn-primary-small">
-          {" "}
+        <button
+          disabled={newComment.length > 0 ? false : true}
+          className={
+            newComment.length > 0
+              ? "ser-btn-primary-small"
+              : "ser-btn-disabled-small"
+          }
+          style={{ marginTop: "1rem" }}
+        >
           Add comment{" "}
         </button>
       </div>

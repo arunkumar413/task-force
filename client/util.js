@@ -75,90 +75,90 @@ export function sortItems(items) {
   return sortedItems;
 }
 
-export function transformTaskData() {
-  let data = [
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment",
-      comment_t_id: 2,
-      attch_id: 1,
-      file_name: "test file 1",
-      comment_id: 2,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment",
-      comment_t_id: 2,
-      attch_id: 2,
-      file_name: "test file 2",
-      comment_id: 2,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment",
-      comment_t_id: 2,
-      attch_id: 3,
-      file_name: "test file 3",
-      comment_id: 2,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment 2",
-      comment_t_id: 3,
-      attch_id: 4,
-      file_name: "test file 4",
-      comment_id: 3,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment 2",
-      comment_t_id: 3,
-      attch_id: 5,
-      file_name: "test file 5",
-      comment_id: 3,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment 2",
-      comment_t_id: 3,
-      attch_id: 6,
-      file_name: "test file 6",
-      comment_id: 3,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment 4",
-      comment_t_id: 5,
-      attch_id: null,
-      file_name: null,
-      comment_id: null,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment 5",
-      comment_t_id: 6,
-      attch_id: null,
-      file_name: null,
-      comment_id: null,
-    },
-    {
-      task_id: 5,
-      task_title: "My task one",
-      comment: "test comment 3",
-      comment_t_id: 4,
-      attch_id: null,
-      file_name: null,
-      comment_id: null,
-    },
-  ];
+export function transformTaskData(data) {
+  // let data = [
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment",
+  //     comment_t_id: 2,
+  //     attch_id: 1,
+  //     file_name: "test file 1",
+  //     comment_id: 2,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment",
+  //     comment_t_id: 2,
+  //     attch_id: 2,
+  //     file_name: "test file 2",
+  //     comment_id: 2,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment",
+  //     comment_t_id: 2,
+  //     attch_id: 3,
+  //     file_name: "test file 3",
+  //     comment_id: 2,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment 2",
+  //     comment_t_id: 3,
+  //     attch_id: 4,
+  //     file_name: "test file 4",
+  //     comment_id: 3,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment 2",
+  //     comment_t_id: 3,
+  //     attch_id: 5,
+  //     file_name: "test file 5",
+  //     comment_id: 3,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment 2",
+  //     comment_t_id: 3,
+  //     attch_id: 6,
+  //     file_name: "test file 6",
+  //     comment_id: 3,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment 4",
+  //     comment_t_id: 5,
+  //     attch_id: null,
+  //     file_name: null,
+  //     comment_id: null,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment 5",
+  //     comment_t_id: 6,
+  //     attch_id: null,
+  //     file_name: null,
+  //     comment_id: null,
+  //   },
+  //   {
+  //     task_id: 5,
+  //     task_title: "My task one",
+  //     comment: "test comment 3",
+  //     comment_t_id: 4,
+  //     attch_id: null,
+  //     file_name: null,
+  //     comment_id: null,
+  //   },
+  // ];
 
   const transformedData = {};
   data.forEach((item) => {
@@ -170,6 +170,9 @@ export function transformTaskData() {
         comments: [],
       };
     }
+
+    // console.log("data item", data);
+    debugger;
 
     const commentIndex = transformedData[item.task_id].comments.findIndex(
       (comment) => comment.comment_t_id === item.comment_t_id
@@ -192,4 +195,5 @@ export function transformTaskData() {
   const finalData = Object.values(transformedData);
 
   console.log(JSON.stringify(finalData));
+  return finalData;
 }
