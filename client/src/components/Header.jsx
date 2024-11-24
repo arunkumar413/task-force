@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import useLocalStorage from "./useLocalStorage";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, setUserInfo } from "../store/authSlice";
 
@@ -8,24 +7,8 @@ export function Header() {
   const dispatch = useDispatch();
   const auth = useSelector((state) => state.auth);
 
-  useEffect(
-    function () {
-      let userObj = localStorage.getItem("userInfo");
-      if (userObj) {
-        let userJson = JSON.parse(userObj);
-        dispatch(
-          setUserInfo({
-            username: userJson.username,
-            email: userJson.email,
-            isLoggedIn: true,
-          })
-        );
-      }
-    },
-    [auth]
-  );
-
-  useEffect(function () {
+  // Single useEffect to handle both scenarios: initial load and auth changes
+  useEffect(() => {
     let userObj = localStorage.getItem("userInfo");
     if (userObj) {
       let userJson = JSON.parse(userObj);
@@ -37,7 +20,7 @@ export function Header() {
         })
       );
     }
-  }, []);
+  }, [auth]); // Runs on initial mount and when `auth` changes
 
   async function handleLogout() {
     let res = await fetch("http://localhost:3000/api/logout", {
@@ -51,8 +34,7 @@ export function Header() {
     if (res.status === 200) {
       localStorage.removeItem("userInfo");
       dispatch(logout());
-
-      let result = await res.json();
+      await res.json();
     } else {
       console.log("logout failed");
     }
@@ -71,9 +53,6 @@ export function Header() {
         }}
       >
         <Link to="/"> Home </Link>
-        {/* <Link to="/contact"> Contact </Link>
-        <Link to="/about"> About </Link> */}
-
         <Link to="/add-new-task"> New task </Link>
         <Link to="/create-view"> Create view </Link>
 
