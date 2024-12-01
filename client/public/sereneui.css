@@ -676,8 +676,12 @@ details.accordian-secondary-large {
   background-color: aliceblue;
 }
 
-details div {
+/* details div {
   padding: 10px;
+} */
+
+details > :nth-child(2) {
+  padding: 0.5rem;
 }
 
 .accordian-primary-small > summary,

@@ -64,7 +64,6 @@ export function MicroTasks() {
   }
 
   function handleToggleStatus(evt, clickedItem) {
-    debugger;
     let newState = microTasks.map(function (item, index) {
       if (item.title === clickedItem.title) {
         item.isDone = evt.target.checked;
@@ -74,6 +73,27 @@ export function MicroTasks() {
       }
     });
     setMicroTasks(newState);
+  }
+
+  function handleChangeTaskTitle(evt, changedItem) {
+    let newState = microTasks.map(function (item, index) {
+      if (item.id === changedItem.id) {
+        item.title = evt.target.value;
+        return item;
+      } else {
+        return item;
+      }
+    });
+    setMicroTasks(newState);
+    let newTransFormedState = transformedData.map(function (item, index) {
+      if (item.id === changedItem.id) {
+        item.isEdit = true;
+        return item;
+      } else {
+        return item;
+      }
+    });
+    setTransformedData(newTransFormedState);
   }
 
   const microTasksElements = transformedData.map(function (item, index) {
@@ -86,10 +106,17 @@ export function MicroTasks() {
           justifyContent: "flex-start",
           gridTemplateColumns: "repeat(12,1fr)",
           alignItems: "center",
+          gap: "1rem",
+          marginBottom: "0.2rem",
         }}
       >
         {item.isEdit === true ? (
-          <input style={{ gridColumn: "1/5" }} value={item.title} type="text" />
+          <input
+            style={{ gridColumn: "1/5" }}
+            value={item.title}
+            type="text"
+            onChange={(evt) => handleChangeTaskTitle(evt, item)}
+          />
         ) : (
           <p style={{ gridColumn: "1/5" }}> {item.title} </p>
         )}
@@ -98,6 +125,7 @@ export function MicroTasks() {
           {" "}
           Done
           <input
+            style={{ marginLeft: "0.5rem" }}
             className="ser-checkbox-primary-small "
             type="checkbox"
             checked={item.isDone}
@@ -189,22 +217,37 @@ export function MicroTasks() {
     <div className="rc-MicroTasks">
       <details className="accordian-secondary-small">
         <summary>Micro Tasks ({microTasks.length}) </summary>
-        <input
-          onChange={handleNewTaskInput}
-          type="text"
-          placeholder="Add new micro task"
-        />{" "}
-        <button
-          className={
-            newTaskInput.length > 0
-              ? "ser-btn-primary-small"
-              : "ser-btn-disabled-small"
-          }
-          onClick={addNewTask}
-        >
-          Add
-        </button>
-        {microTasksElements}
+        <div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyItems: "stretch",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              gap: "1rem",
+              marginBottom: "0.2rem",
+            }}
+          >
+            <input
+              onChange={handleNewTaskInput}
+              className="ser-input-primary-small-outlined"
+              type="text"
+              placeholder="Add new micro task"
+            />{" "}
+            <button
+              className={
+                newTaskInput.length > 0
+                  ? "ser-btn-primary-small"
+                  : "ser-btn-disabled-small"
+              }
+              onClick={addNewTask}
+            >
+              Add
+            </button>
+          </div>
+          {microTasksElements}
+        </div>
       </details>
     </div>
   );
