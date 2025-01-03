@@ -54,6 +54,8 @@ export function MicroTasks() {
   function addNewTask() {
     let newData = [...microTasks, { title: newTaskInput, isDone: false }];
     setMicroTasks(newData);
+    // Need to make an API call to add new micro task
+    // API call to fetch all the micro tasks
   }
 
   function handleDelMicroTask(evt, clickedItem) {
@@ -61,6 +63,8 @@ export function MicroTasks() {
       return item.title !== clickedItem.title;
     });
     setMicroTasks(newState);
+    // API call to delete the micro task
+    // API call to refresh the micro tasks
   }
 
   function handleToggleStatus(evt, clickedItem) {
@@ -98,18 +102,7 @@ export function MicroTasks() {
 
   const microTasksElements = transformedData.map(function (item, index) {
     return (
-      <div
-        key={item.title}
-        className="micro-task-item"
-        style={{
-          display: "grid",
-          justifyContent: "flex-start",
-          gridTemplateColumns: "repeat(12,1fr)",
-          alignItems: "center",
-          gap: "1rem",
-          marginBottom: "0.2rem",
-        }}
-      >
+      <div key={item.title} className="micro-task-item">
         {item.isEdit === true ? (
           <input
             style={{ gridColumn: "1/5" }}

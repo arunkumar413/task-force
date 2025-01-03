@@ -181,6 +181,8 @@ main {
   align-items: center;
   background-color: #f1f3f6;
   border-radius: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .add-comment-box {
@@ -377,6 +379,22 @@ hr {
   cursor: pointer;
 }
 
+.micro-task-item {
+  display: grid;
+  justify-content: flex-start;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.2rem;
+}
+
 .micro-task-item:hover {
   background-color: #f1f3f6;
+}
+
+.task-title {
+  padding: 1rem;
+  font-weight: bold;
+  display: block;
+  text-align: center;
 }
