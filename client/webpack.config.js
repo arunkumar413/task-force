@@ -29,7 +29,7 @@ module.exports = (env, argv) => {
         template: "src/index.html",
       }),
       new CopyWebpackPlugin({
-        patterns: [{ from: "public", to: "" }],
+        patterns: [{ from: "public", to: "", noErrorOnMissing: true }],
       }),
       new webpack.DefinePlugin({
         "process.env": `(${JSON.stringify({

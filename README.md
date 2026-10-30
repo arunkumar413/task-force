@@ -49,6 +49,7 @@ The dataset's original creator IDs 1, 2, and 3 map to Ava, Marcus, and Liam resp
 - Role/resource permission management and permission revocation on existing sessions.
 - Multiple device sessions and OTP password changes that sign out other devices.
 - Tailwind styling and light, dark, and system themes.
+- All active screens use Tailwind utilities. Shared form controls live in `client/src/components/FormControls.jsx`; `client/src/index.css` contains only Tailwind setup and theme tokens.
 - Structured request logging without authentication request bodies.
 
 Configure `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` for invitation and password emails. Without SMTP, development codes are printed to the server console.

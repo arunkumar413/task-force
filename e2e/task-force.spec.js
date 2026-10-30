@@ -27,7 +27,7 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   await page.getByLabel("Priority", { exact: true }).selectOption("Urgent");
   await page.getByRole("button", { name: "Create task", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Browser demo task", exact: true })).toBeVisible();
-  await expect(page.locator(".markdown strong")).toHaveText("Browser checked");
+  await expect(page.getByTestId("markdown").locator("strong")).toHaveText("Browser checked");
   await page.getByLabel("New subtask").fill("Check UI");
   await page.getByRole("button", { name: "Add subtask" }).click();
   await page.getByRole("checkbox", { name: "Check UI" }).check();
@@ -65,7 +65,7 @@ test("signed-in tasks persist in MongoDB and profile features render", async ({ 
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
   await expect(page.locator("tbody tr")).toHaveCount(22);
-  await expect(page.locator(".demo-banner")).toHaveCount(0);
+  await expect(page.getByTestId("demo-banner")).toHaveCount(0);
   await page.getByRole("link", { name: "+ New task", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("MongoDB browser task");
   await page.getByRole("button", { name: "Create task", exact: true }).click();
@@ -79,7 +79,7 @@ test("signed-in tasks persist in MongoDB and profile features render", async ({ 
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   await page.goto("/");
-  await expect(page.locator(".demo-banner")).toBeVisible();
+  await expect(page.getByTestId("demo-banner")).toBeVisible();
   await expect(page.getByRole("link", { name: "MongoDB browser task", exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -93,7 +93,7 @@ test("organization registration works through the form", async ({ page }) => {
   await page.getByLabel("Confirm password", { exact: true }).fill("browser-password-123");
   await page.getByRole("button", { name: /Create/ }).click();
   await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
-  await expect(page.locator(".demo-banner")).toHaveCount(0);
+  await expect(page.getByTestId("demo-banner")).toHaveCount(0);
   await page.getByRole("link", { name: "Profile & organization" }).click();
   await expect(page.getByRole("heading", { name: "browser-admin", exact: true })).toBeVisible();
 });
@@ -147,4 +147,62 @@ test("task search matches title, priority, status, and assignee", async ({ page 
   await expect(page.getByText("No tasks match this view.")).toBeVisible();
   await search.fill("   ");
   await expect(page.locator("tbody tr")).toHaveCount(22);
+});
+
+test("priority and status labels support multiple selections and combine with search", async ({ page }) => {
+  await page.goto("/");
+  const rows = page.locator("tbody tr");
+  const priority = page.getByRole("group", { name: "Priority", exact: true });
+  const status = page.getByRole("group", { name: "Status", exact: true });
+  await expect(rows).toHaveCount(22);
+  await priority.getByRole("button", { name: "High", exact: true }).click();
+  await priority.getByRole("button", { name: "Urgent", exact: true }).click();
+  await expect(priority.getByRole("button", { pressed: true })).toHaveCount(2);
+  await expect(rows).toHaveCount(10);
+  await status.getByRole("button", { name: "Backlog", exact: true }).click();
+  await status.getByRole("button", { name: "In progress", exact: true }).click();
+  await expect(status.getByRole("button", { pressed: true })).toHaveCount(2);
+  await expect(rows).toHaveCount(10);
+  await status.getByRole("button", { name: "In progress", exact: true }).click();
+  await expect(rows).toHaveCount(2);
+  await expect(page.locator("tbody tr td:nth-child(3)")).toHaveText(["Backlog", "Backlog"]);
+  await page.getByRole("textbox", { name: "Search", exact: true }).fill("demo user 2");
+  await expect(rows).toHaveCount(1);
+  await page.getByRole("button", { name: "Clear filters", exact: true }).click();
+  await expect(priority.getByRole("button", { pressed: true })).toHaveCount(0);
+  await expect(status.getByRole("button", { pressed: true })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Search", exact: true })).toHaveValue("demo user 2");
+  await page.getByRole("textbox", { name: "Search", exact: true }).fill("");
+  await expect(rows).toHaveCount(22);
+});
+
+test("Tailwind layout and shared controls remain consistent on desktop and mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const search = await page.getByRole("textbox", { name: "Search", exact: true }).locator("..").boundingBox();
+  const priority = await page.getByRole("group", { name: "Priority", exact: true }).boundingBox();
+  const status = await page.getByRole("group", { name: "Status", exact: true }).boundingBox();
+  expect(Math.abs(search.y - priority.y)).toBeLessThan(1);
+  expect(Math.abs(search.y - status.y)).toBeLessThan(1);
+  await page.goto("/add-new-task");
+  const input = await page.getByRole("textbox", { name: "Title", exact: true }).boundingBox();
+  const select = await page.getByRole("combobox", { name: "Priority", exact: true }).boundingBox();
+  expect(input.height).toBe(42);
+  expect(select.height).toBe(input.height);
+  await page.goto("/create-view");
+  const checkbox = page.getByRole("checkbox", { name: "Low", exact: true });
+  const bounds = await checkbox.boundingBox();
+  expect(bounds.width).toBe(18);
+  expect(bounds.height).toBe(18);
+  await checkbox.check();
+  await expect(checkbox).toBeChecked();
+  await expect(checkbox).toHaveCSS("background-color", "rgb(79, 70, 229)");
+  await page.getByRole("combobox", { name: "Color theme" }).selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(checkbox).toHaveCSS("background-color", "rgb(99, 102, 241)");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: test.info().outputPath("tailwind-mobile-dark.png"), fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.goto("/");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

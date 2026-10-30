@@ -1,15 +1,25 @@
+import { Button, markdownClasses, Input, Textarea } from "../components/FormControls";
 import React, { useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteTask, postComment, saveTask } from "../store/tasksFilterSlice";
 export function TaskPage() {
-  const { task_id } = useParams();
-  const { items, loaded, error: loadError } = useSelector(state => state.tasks);
+  const {
+    task_id
+  } = useParams();
+  const {
+    items,
+    loaded,
+    error: loadError
+  } = useSelector(state => state.tasks);
   const task = items.find(item => item.id === task_id);
   const [comment, setComment] = useState("");
   const [subtask, setSubtask] = useState("");
-  const [attachment, setAttachment] = useState({ file_name: "", link: "" });
+  const [attachment, setAttachment] = useState({
+    file_name: "",
+    link: ""
+  });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -17,47 +27,112 @@ export function TaskPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   async function run(action, after) {
-    setBusy(true); setError("");
-    try { await dispatch(action).unwrap(); after?.(); } catch (err) { setError(err.message); } finally { setBusy(false); }
+    setBusy(true);
+    setError("");
+    try {
+      await dispatch(action).unwrap();
+      after?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
   if (!loaded) return <p>{loadError || "Loading task…"}</p>;
   if (!task) return <p>Task not found. <Link to="/">Back to tasks</Link></p>;
-  const update = patch => run(saveTask({ id: task.id, ...patch }));
+  const update = patch => run(saveTask({
+    id: task.id,
+    ...patch
+  }));
   return <>
-    <div className="page-heading"><div><Link to="/">← Tasks</Link><h1>{task.title}</h1></div><div className="actions"><Link className="primary-button" to={"/task/" + task.id + "/edit"}>Edit task</Link><button onClick={() => setDeleting(true)}>Delete</button></div></div>
-    {error && <p role="alert">{error}</p>}
-    {deleting && <div className="task-card"><p>Delete this task and its comments?</p><div className="actions"><button disabled={busy} onClick={() => run(deleteTask(task.id), () => navigate("/"))}>Delete task</button><button onClick={() => setDeleting(false)}>Keep task</button></div></div>}
-    <div className="task-card">
-      <dl className="task-meta"><div><dt>Priority</dt><dd>{task.priority}</dd></div><div><dt>Status</dt><dd>{task.status}</dd></div><div><dt>Assignee</dt><dd>{task.user || "—"}</dd></div><div><dt>Due date</dt><dd>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</dd></div></dl>
-      <div className="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
-      <div className="actions">{task.labels?.map(label => <span className="label-chip" key={label}>{label}</span>)}</div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><Link to="/">← Tasks</Link><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{task.title}</h1></div><div className="flex flex-wrap items-center gap-3"><Link className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" to={"/task/" + task.id + "/edit"}>Edit task</Link><Button onClick={() => setDeleting(true)}>Delete</Button></div></div>
+    {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    {deleting && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><p>Delete this task and its comments?</p><div className="flex flex-wrap items-center gap-3"><Button disabled={busy} onClick={() => run(deleteTask(task.id), () => navigate("/"))}>Delete task</Button><Button onClick={() => setDeleting(false)}>Keep task</Button></div></div>}
+    <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6">
+      <dl className="mb-5 grid grid-cols-2 gap-4 border-b border-slate-200 pb-5 sm:grid-cols-4 [&_dt]:text-xs [&_dt]:text-slate-500 [&_dd]:mt-1"><div><dt>Priority</dt><dd>{task.priority}</dd></div><div><dt>Status</dt><dd>{task.status}</dd></div><div><dt>Assignee</dt><dd>{task.user || "—"}</dd></div><div><dt>Due date</dt><dd>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</dd></div></dl>
+      <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
+      <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
-    <section className="task-card"><h2>Subtasks ({task.subtasks.length})</h2>
-      {task.subtasks.map((item,index) => <div className="subtask-row" key={item._id || item.id || index}>
-        {editingSubtask?.index === index ? <form className="inline-form" onSubmit={event => {
+    <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Subtasks ({task.subtasks.length})</h2>
+      {task.subtasks.map((item, index) => <div className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3" key={item._id || item.id || index}>
+        {editingSubtask?.index === index ? <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
           event.preventDefault();
-          run(saveTask({ id: task.id, subtasks: task.subtasks.map((sub,i) => i === index ? { ...sub, title: editingSubtask.title.trim() } : sub) }), () => setEditingSubtask(null));
-        }}><input aria-label="Subtask title" required value={editingSubtask.title} onChange={e => setEditingSubtask({ index, title: e.target.value })} /><button disabled={busy || !editingSubtask.title.trim()}>Save</button><button type="button" onClick={() => setEditingSubtask(null)}>Cancel</button></form> :
-          <><label><input type="checkbox" disabled={busy} checked={item.isDone} onChange={event => update({ subtasks: task.subtasks.map((sub,i) => i === index ? { ...sub, isDone: event.target.checked } : sub) })} />{item.title}</label>
-            <div className="actions"><button disabled={busy} onClick={() => setEditingSubtask({ index, title: item.title })}>Edit</button><button disabled={busy} onClick={() => update({ subtasks: task.subtasks.filter((_,i) => i !== index) })}>Remove</button></div></>}
+          run(saveTask({
+            id: task.id,
+            subtasks: task.subtasks.map((sub, i) => i === index ? {
+              ...sub,
+              title: editingSubtask.title.trim()
+            } : sub)
+          }), () => setEditingSubtask(null));
+        }}><Input aria-label="Subtask title" required value={editingSubtask.title} onChange={e => setEditingSubtask({
+            index,
+            title: e.target.value
+          })} /><Button disabled={busy || !editingSubtask.title.trim()}>Save</Button><Button type="button" onClick={() => setEditingSubtask(null)}>Cancel</Button></form> : <><label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700"><Input type="checkbox" disabled={busy} checked={item.isDone} onChange={event => update({
+              subtasks: task.subtasks.map((sub, i) => i === index ? {
+                ...sub,
+                isDone: event.target.checked
+              } : sub)
+            })} />{item.title}</label>
+            <div className="flex flex-wrap items-center gap-3"><Button disabled={busy} onClick={() => setEditingSubtask({
+              index,
+              title: item.title
+            })}>Edit</Button><Button disabled={busy} onClick={() => update({
+              subtasks: task.subtasks.filter((_, i) => i !== index)
+            })}>Remove</Button></div></>}
       </div>)}
-      <form className="inline-form" onSubmit={event => { event.preventDefault(); run(saveTask({ id: task.id, subtasks: [...task.subtasks, { title: subtask.trim(), isDone: false }] }), () => setSubtask("")); }}>
-        <input aria-label="New subtask" value={subtask} onChange={e => setSubtask(e.target.value)} placeholder="Add a subtask" required /><button disabled={busy || !subtask.trim()}>Add subtask</button>
+      <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+        event.preventDefault();
+        run(saveTask({
+          id: task.id,
+          subtasks: [...task.subtasks, {
+            title: subtask.trim(),
+            isDone: false
+          }]
+        }), () => setSubtask(""));
+      }}>
+        <Input aria-label="New subtask" value={subtask} onChange={e => setSubtask(e.target.value)} placeholder="Add a subtask" required /><Button disabled={busy || !subtask.trim()}>Add subtask</Button>
       </form>
     </section>
-    <section className="task-card"><h2>Attachments</h2>
-      {task.attachments.map((item,index) => <div key={item._id || index} className="subtask-row"><a href={item.link} target="_blank" rel="noreferrer">{item.file_name}</a><button disabled={busy} onClick={() => update({ attachments: task.attachments.filter((_,i) => i !== index) })}>Remove</button></div>)}
-      <form className="inline-form" onSubmit={event => { event.preventDefault(); if (!/^https?:\/\//i.test(attachment.link)) { setError("Use an http or https attachment URL"); return; } run(saveTask({ id: task.id, attachments: [...task.attachments, attachment] }), () => setAttachment({ file_name: "", link: "" })); }}>
-        <input aria-label="Attachment name" placeholder="Attachment name" value={attachment.file_name} onChange={e => setAttachment({ ...attachment, file_name: e.target.value })} required />
-        <input aria-label="Attachment URL" placeholder="https://…" type="url" value={attachment.link} onChange={e => setAttachment({ ...attachment, link: e.target.value })} required /><button disabled={busy}>Add link</button>
+    <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Attachments</h2>
+      {task.attachments.map((item, index) => <div key={item._id || index} className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3"><a href={item.link} target="_blank" rel="noreferrer">{item.file_name}</a><Button disabled={busy} onClick={() => update({
+          attachments: task.attachments.filter((_, i) => i !== index)
+        })}>Remove</Button></div>)}
+      <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+        event.preventDefault();
+        if (!/^https?:\/\//i.test(attachment.link)) {
+          setError("Use an http or https attachment URL");
+          return;
+        }
+        run(saveTask({
+          id: task.id,
+          attachments: [...task.attachments, attachment]
+        }), () => setAttachment({
+          file_name: "",
+          link: ""
+        }));
+      }}>
+        <Input aria-label="Attachment name" placeholder="Attachment name" value={attachment.file_name} onChange={e => setAttachment({
+          ...attachment,
+          file_name: e.target.value
+        })} required />
+        <Input aria-label="Attachment URL" placeholder="https://…" type="url" value={attachment.link} onChange={e => setAttachment({
+          ...attachment,
+          link: e.target.value
+        })} required /><Button disabled={busy}>Add link</Button>
       </form>
     </section>
-    <section className="task-card"><h2>Comments ({task.comments.length})</h2>
-      {task.comments.map((item,index) => <article className="comment" key={item.id || item._id || index}><p className="muted">{item.username || item.email} · {new Date(item.createdAt).toLocaleString()}</p><div className="markdown"><Markdown>{item.comment}</Markdown></div>
-        {item.attachments?.map((file,i) => <a key={i} href={file.link} rel="noreferrer" target="_blank">{file.file_name}</a>)}
+    <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Comments ({task.comments.length})</h2>
+      {task.comments.map((item, index) => <article className="mb-4 border-b border-slate-200 py-4" key={item.id || item._id || index}><p className="text-sm text-slate-500">{item.username || item.email} · {new Date(item.createdAt).toLocaleString()}</p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
+        {item.attachments?.map((file, i) => <a key={i} href={file.link} rel="noreferrer" target="_blank">{file.file_name}</a>)}
       </article>)}
-      <form onSubmit={event => { event.preventDefault(); run(postComment({ id: task.id, comment: comment.trim() }), () => setComment("")); }}>
-        <label>Add a comment<textarea rows={4} value={comment} maxLength={20000} onChange={e => setComment(e.target.value)} required /></label><button className="primary-button" disabled={busy || !comment.trim()}>Add comment</button>
+      <form className="space-y-3" onSubmit={event => {
+        event.preventDefault();
+        run(postComment({
+          id: task.id,
+          comment: comment.trim()
+        }), () => setComment(""));
+      }}>
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Add a comment<Textarea rows={4} value={comment} maxLength={20000} onChange={e => setComment(e.target.value)} required /></label><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || !comment.trim()}>Add comment</Button>
       </form>
     </section>
   </>;

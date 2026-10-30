@@ -8,7 +8,6 @@ import { API_URL } from "./constants";
 import { logout, setUserInfo } from "./store/authSlice";
 import { loadTasks, persistDemo, resetTasks } from "./store/tasksFilterSlice";
 import "./index.css";
-import "./task-force.css";
 
 persistDemo(appStore);
 function Bootstrap() {
@@ -28,4 +27,10 @@ function Bootstrap() {
   if (!auth.checked) return <p className="p-6">Loading Task Force…</p>;
   return <RouterProvider router={AppRouter} />;
 }
-createRoot(document.getElementById("app")).render(<Provider store={appStore}><Bootstrap /></Provider>);
+createRoot(document.getElementById("app")).render(
+  <Provider store={appStore}>
+    <div className="min-h-screen bg-slate-50 font-sans leading-relaxed text-slate-700 antialiased [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer **:focus-visible:outline-2 **:focus-visible:outline-offset-2 **:focus-visible:outline-primary **:motion-reduce:transition-none">
+      <Bootstrap />
+    </div>
+  </Provider>
+);
