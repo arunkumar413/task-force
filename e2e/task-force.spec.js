@@ -9,7 +9,7 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "All tasks" })).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(22);
   await page.screenshot({ path: test.info().outputPath("workspace.png"), fullPage: true });
   await expect(page.getByRole("heading", { name: "Overdue (4)" })).toBeVisible();
   await page.getByRole("link", { name: "+ New task", exact: true }).click();
@@ -64,7 +64,7 @@ test("signed-in tasks persist in MongoDB and profile features render", async ({ 
   await page.getByLabel("Password", { exact: true }).fill("demo123");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(22);
   await expect(page.getByTestId("demo-banner")).toHaveCount(0);
   await page.getByRole("link", { name: "+ New task", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("MongoDB browser task");
@@ -110,48 +110,48 @@ test("Liam's My tasks view shows his assigned tasks, including after reload", as
   expect(mine.data.every(task => task.employee === me.data.id)).toBe(true);
   await page.getByRole("link", { name: "My tasks", exact: true }).click();
   await expect(page.getByRole("heading", { name: "My tasks", exact: true })).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(mine.data.length);
-  await expect(page.locator("tbody tr td:nth-child(4)")).toHaveText(mine.data.map(() => "Liam Ortiz"));
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(mine.data.length);
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(4)")).toHaveText(mine.data.map(() => "Liam Ortiz"));
   await page.reload();
-  await expect(page.locator("tbody tr")).toHaveCount(mine.data.length);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(mine.data.length);
 });
 
 test("task search matches title, priority, status, and assignee", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("textbox", { name: "Search", exact: true });
-  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(22);
   await search.fill("MY TASK NINE");
-  await expect(page.locator("tbody tr")).toHaveCount(1);
-  await expect(page.locator("tbody tr td:first-child")).toHaveText("My task nine");
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(1);
+  await expect(page.locator("tbody tr[data-task-id] td:first-child")).toHaveText("My task nine");
   await search.fill("  uRgEnT  ");
-  await expect(page.locator("tbody tr")).toHaveCount(4);
-  await expect(page.locator("tbody tr td:nth-child(2)")).toHaveText(["Urgent", "Urgent", "Urgent", "Urgent"]);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(4);
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(2)")).toHaveText(["Urgent", "Urgent", "Urgent", "Urgent"]);
   await search.fill("backlog");
-  await expect(page.locator("tbody tr").first()).toBeVisible();
-  await expect(page.locator("tbody tr td:nth-child(3)").filter({ hasNotText: "Backlog" })).toHaveCount(0);
+  await expect(page.locator("tbody tr[data-task-id]").first()).toBeVisible();
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(3)").filter({ hasNotText: "Backlog" })).toHaveCount(0);
   await search.fill("DEMO USER 2");
-  await expect(page.locator("tbody tr").first()).toBeVisible();
-  await expect(page.locator("tbody tr td:nth-child(4)").filter({ hasNotText: "Demo user 2" })).toHaveCount(0);
+  await expect(page.locator("tbody tr[data-task-id]").first()).toBeVisible();
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(4)").filter({ hasNotText: "Demo user 2" })).toHaveCount(0);
   await search.fill("no-matching-task");
   await expect(page.getByText("No tasks match this view.")).toBeVisible();
   await search.fill("  HIGH   backlog  ");
-  await expect(page.locator("tbody tr")).toHaveCount(2);
-  await expect(page.locator("tbody tr td:nth-child(2)")).toHaveText(["High", "High"]);
-  await expect(page.locator("tbody tr td:nth-child(3)")).toHaveText(["Backlog", "Backlog"]);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(2);
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(2)")).toHaveText(["High", "High"]);
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(3)")).toHaveText(["Backlog", "Backlog"]);
   await search.fill("backlog high");
-  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(2);
   await search.fill("nine demo user 3");
-  await expect(page.locator("tbody tr")).toHaveCount(1);
-  await expect(page.locator("tbody tr td:first-child")).toHaveText("My task nine");
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(1);
+  await expect(page.locator("tbody tr[data-task-id] td:first-child")).toHaveText("My task nine");
   await search.fill("nine urgent");
   await expect(page.getByText("No tasks match this view.")).toBeVisible();
   await search.fill("   ");
-  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await expect(page.locator("tbody tr[data-task-id]")).toHaveCount(22);
 });
 
 test("priority and status labels support multiple selections and combine with search", async ({ page }) => {
   await page.goto("/");
-  const rows = page.locator("tbody tr");
+  const rows = page.locator("tbody tr[data-task-id]");
   const priority = page.getByRole("group", { name: "Priority", exact: true });
   const status = page.getByRole("group", { name: "Status", exact: true });
   await expect(rows).toHaveCount(22);
@@ -165,7 +165,7 @@ test("priority and status labels support multiple selections and combine with se
   await expect(rows).toHaveCount(10);
   await status.getByRole("button", { name: "In progress", exact: true }).click();
   await expect(rows).toHaveCount(2);
-  await expect(page.locator("tbody tr td:nth-child(3)")).toHaveText(["Backlog", "Backlog"]);
+  await expect(page.locator("tbody tr[data-task-id] td:nth-child(3)")).toHaveText(["Backlog", "Backlog"]);
   await page.getByRole("textbox", { name: "Search", exact: true }).fill("demo user 2");
   await expect(rows).toHaveCount(1);
   await page.getByRole("button", { name: "Clear filters", exact: true }).click();
@@ -179,11 +179,15 @@ test("priority and status labels support multiple selections and combine with se
 test("Tailwind layout and shared controls remain consistent on desktop and mobile", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  const search = await page.getByRole("textbox", { name: "Search", exact: true }).locator("..").boundingBox();
+  const search = await page.getByRole("textbox", { name: "Search", exact: true }).boundingBox();
+  const clear = await page.getByRole("button", { name: "Clear filters", exact: true }).boundingBox();
   const priority = await page.getByRole("group", { name: "Priority", exact: true }).boundingBox();
   const status = await page.getByRole("group", { name: "Status", exact: true }).boundingBox();
-  expect(Math.abs(search.y - priority.y)).toBeLessThan(1);
-  expect(Math.abs(search.y - status.y)).toBeLessThan(1);
+  expect(Math.abs(search.y - clear.y)).toBeLessThan(1);
+  expect(Math.abs(priority.y - status.y)).toBeLessThan(1);
+  expect(priority.y).toBeGreaterThan(search.y + search.height);
+  expect(clear.x).toBeGreaterThan(search.x);
+  expect(status.x).toBeGreaterThan(priority.x);
   await page.goto("/add-new-task");
   const input = await page.getByRole("textbox", { name: "Title", exact: true }).boundingBox();
   const select = await page.getByRole("combobox", { name: "Priority", exact: true }).boundingBox();
@@ -204,5 +208,40 @@ test("Tailwind layout and shared controls remain consistent on desktop and mobil
   await page.screenshot({ path: test.info().outputPath("tailwind-mobile-dark.png"), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.goto("/");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test("grouped tasks share aligned columns and one sticky header", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const region = page.getByRole("region", { name: "Task list", exact: true });
+  await expect(region.getByRole("table")).toHaveCount(1);
+  const headers = region.locator("thead th");
+  await expect(headers).toHaveCount(5);
+  await expect(region.locator("thead")).toHaveCount(1);
+  await expect(region.locator("tbody tr[data-task-id]")).toHaveCount(22);
+  const rows = region.locator("tr[data-task-id]");
+  for (let column = 0; column < 5; column++) {
+    const header = await headers.nth(column).boundingBox();
+    for (const row of [rows.first(), rows.last()]) {
+      const cell = await row.locator("td").nth(column).boundingBox();
+      expect(Math.abs(cell.x - header.x)).toBeLessThan(1);
+      expect(Math.abs(cell.width - header.width)).toBeLessThan(1);
+      await expect(row.locator("td").nth(column)).toHaveCSS("vertical-align", "middle");
+    }
+  }
+  await region.scrollIntoViewIfNeeded();
+  const before = await headers.first().boundingBox();
+  await region.evaluate(element => { element.scrollTop = 350; });
+  await expect.poll(() => region.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  const after = await headers.first().boundingBox();
+  expect(Math.abs(before.y - after.y)).toBeLessThan(1);
+  await page.screenshot({ path: test.info().outputPath("grouped-table-sticky.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await region.evaluate(element => { element.scrollLeft = 200; });
+  await expect.poll(() => region.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  const mobileHeader = await headers.nth(3).boundingBox();
+  const mobileCell = await rows.last().locator("td").nth(3).boundingBox();
+  expect(Math.abs(mobileHeader.x - mobileCell.x)).toBeLessThan(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
