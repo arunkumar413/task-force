@@ -134,6 +134,17 @@ test("task search matches title, priority, status, and assignee", async ({ page 
   await expect(page.locator("tbody tr td:nth-child(4)").filter({ hasNotText: "Demo user 2" })).toHaveCount(0);
   await search.fill("no-matching-task");
   await expect(page.getByText("No tasks match this view.")).toBeVisible();
+  await search.fill("  HIGH   backlog  ");
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await expect(page.locator("tbody tr td:nth-child(2)")).toHaveText(["High", "High"]);
+  await expect(page.locator("tbody tr td:nth-child(3)")).toHaveText(["Backlog", "Backlog"]);
+  await search.fill("backlog high");
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await search.fill("nine demo user 3");
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody tr td:first-child")).toHaveText("My task nine");
+  await search.fill("nine urgent");
+  await expect(page.getByText("No tasks match this view.")).toBeVisible();
   await search.fill("   ");
   await expect(page.locator("tbody tr")).toHaveCount(22);
 });
