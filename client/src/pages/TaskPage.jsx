@@ -53,7 +53,14 @@ export function TaskPage() {
       <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
       <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
-    <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Subtasks ({task.subtasks.length})</h2>
+    <details open className="group/subtasks mb-5 rounded-xl border border-slate-200 bg-surface">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-6 text-slate-900 [&::-webkit-details-marker]:hidden">
+        <h2 className="text-lg font-semibold tracking-tight">Subtasks ({task.subtasks.length})</h2>
+        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="size-5 shrink-0 text-slate-500 transition-transform group-open/subtasks:rotate-180">
+          <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </summary>
+      <div className="px-6 pb-6">
       {task.subtasks.map((item, index) => <div className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3" key={item._id || item.id || index}>
         {editingSubtask?.index === index ? <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
           event.preventDefault();
@@ -92,7 +99,8 @@ export function TaskPage() {
       }}>
         <Input aria-label="New subtask" value={subtask} onChange={e => setSubtask(e.target.value)} placeholder="Add a subtask" required /><Button disabled={busy || !subtask.trim()}>Add subtask</Button>
       </form>
-    </section>
+      </div>
+    </details>
     <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Attachments</h2>
       {task.attachments.map((item, index) => <div key={item._id || index} className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3"><a href={item.link} target="_blank" rel="noreferrer">{item.file_name}</a><Button disabled={busy} onClick={() => update({
           attachments: task.attachments.filter((_, i) => i !== index)

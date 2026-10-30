@@ -31,6 +31,10 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   await page.getByLabel("New subtask").fill("Check UI");
   await page.getByRole("button", { name: "Add subtask" }).click();
   await page.getByRole("checkbox", { name: "Check UI" }).check();
+  await page.locator("summary").filter({ hasText: "Subtasks" }).click();
+  await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeHidden();
+  await page.locator("summary").filter({ hasText: "Subtasks" }).press("Space");
+  await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeChecked();
   await page.getByLabel("Add a comment").fill("Browser comment");
   await page.getByRole("button", { name: "Add comment" }).click();
   await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
