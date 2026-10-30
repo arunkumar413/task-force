@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { saveTask } from "../store/tasksFilterSlice";
 import { API_URL } from "../constants";
+import { MarkdownEditor } from "./MarkdownEditor";
 export function TaskForm({ task }) {
   const auth = useSelector(state => state.auth);
   const [form, setForm] = useState(() => ({
@@ -49,7 +50,7 @@ export function TaskForm({ task }) {
       </select></label>
       <label>Due date<input type="date" name="dueDate" value={form.dueDate} onChange={change} /></label>
     </div>
-    <label>Description (Markdown)<textarea rows={9} name="description" maxLength={50000} value={form.description} onChange={change} /></label>
+    <MarkdownEditor value={form.description} onChange={change} />
     <label>Labels (comma separated)<input name="labels" value={form.labels} onChange={change} placeholder="Frontend, Testing" /></label>
     <div className="actions"><button className="primary-button" disabled={saving}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</button><button type="button" onClick={() => navigate(-1)}>Cancel</button></div>
   </form>;

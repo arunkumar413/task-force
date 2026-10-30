@@ -14,7 +14,16 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   await expect(page.getByRole("heading", { name: "Overdue (4)" })).toBeVisible();
   await page.getByRole("link", { name: "+ New task", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("Browser demo task");
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
+  await expect(page.getByRole("tabpanel", { name: "Preview" })).toContainText("Nothing to preview yet.");
+  await page.getByRole("tab", { name: "Edit", exact: true }).click();
   await page.getByLabel("Description (Markdown)").fill("**Browser checked**");
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
+  await expect(page.getByRole("tabpanel", { name: "Preview" }).locator("strong")).toHaveText("Browser checked");
+  await page.getByRole("tab", { name: "Preview", exact: true }).press("ArrowLeft");
+  await expect(page.getByRole("tab", { name: "Edit", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByLabel("Description (Markdown)")).toHaveValue("**Browser checked**");
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
   await page.getByLabel("Priority", { exact: true }).selectOption("Urgent");
   await page.getByRole("button", { name: "Create task", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Browser demo task", exact: true })).toBeVisible();
@@ -29,6 +38,8 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeChecked();
   await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Edit task", exact: true }).click();
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
+  await expect(page.getByRole("tabpanel", { name: "Preview" }).locator("strong")).toHaveText("Browser checked");
   await page.getByLabel("Title", { exact: true }).fill("Updated browser task");
   await page.getByRole("button", { name: "Update task" }).click();
   await expect(page.getByRole("heading", { name: "Updated browser task" })).toBeVisible();
@@ -85,4 +96,44 @@ test("organization registration works through the form", async ({ page }) => {
   await expect(page.locator(".demo-banner")).toHaveCount(0);
   await page.getByRole("link", { name: "Profile & organization" }).click();
   await expect(page.getByRole("heading", { name: "browser-admin", exact: true })).toBeVisible();
+});
+
+test("Liam's My tasks view shows his assigned tasks, including after reload", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("liam.ortiz@acme.example");
+  await page.getByLabel("Password", { exact: true }).fill("demo123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
+  const me = await (await page.request.get("/api/me")).json();
+  const mine = await (await page.request.get("/api/mytasks")).json();
+  expect(mine.data.length).toBeGreaterThan(0);
+  expect(mine.data.every(task => task.employee === me.data.id)).toBe(true);
+  await page.getByRole("link", { name: "My tasks", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "My tasks", exact: true })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(mine.data.length);
+  await expect(page.locator("tbody tr td:nth-child(4)")).toHaveText(mine.data.map(() => "Liam Ortiz"));
+  await page.reload();
+  await expect(page.locator("tbody tr")).toHaveCount(mine.data.length);
+});
+
+test("task search matches title, priority, status, and assignee", async ({ page }) => {
+  await page.goto("/");
+  const search = page.getByRole("textbox", { name: "Search", exact: true });
+  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await search.fill("MY TASK NINE");
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody tr td:first-child")).toHaveText("My task nine");
+  await search.fill("  uRgEnT  ");
+  await expect(page.locator("tbody tr")).toHaveCount(4);
+  await expect(page.locator("tbody tr td:nth-child(2)")).toHaveText(["Urgent", "Urgent", "Urgent", "Urgent"]);
+  await search.fill("backlog");
+  await expect(page.locator("tbody tr").first()).toBeVisible();
+  await expect(page.locator("tbody tr td:nth-child(3)").filter({ hasNotText: "Backlog" })).toHaveCount(0);
+  await search.fill("DEMO USER 2");
+  await expect(page.locator("tbody tr").first()).toBeVisible();
+  await expect(page.locator("tbody tr td:nth-child(4)").filter({ hasNotText: "Demo user 2" })).toHaveCount(0);
+  await search.fill("no-matching-task");
+  await expect(page.getByText("No tasks match this view.")).toBeVisible();
+  await search.fill("   ");
+  await expect(page.locator("tbody tr")).toHaveCount(22);
 });

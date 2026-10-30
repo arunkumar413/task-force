@@ -26,7 +26,6 @@ const MANAGER_PERMISSIONS = [
   "task.write",
   "task.update",
   "task.delete",
-  "task.update",
   "department.read",
 ];
 
@@ -34,6 +33,7 @@ const EMPLOYEE_PERMISSIONS = [
   "employee.read",
   "task.read",
   "task.write",
+  "task.update",
 ];
 
 const HR_PERMISSIONS = [

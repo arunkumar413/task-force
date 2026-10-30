@@ -15,9 +15,11 @@ export default function App() {
   const groups = useMemo(() => {
     const buckets = { Overdue: [], Today: [], Tomorrow: [], "This week": [], "Next week": [], "This month": [], "Next month": [], Later: [], "No due date": [] };
     const now = new Date();
+    const searchTerm = search.trim().toLowerCase();
     items.filter(task => {
       if (viewId === "mine" && String(task.employee) !== String(auth.id || "1")) return false;
-      if (search && !(task.title + " " + task.description).toLowerCase().includes(search.toLowerCase())) return false;
+      const searchableFields = [task.title, task.priority, task.status, task.user, task.description];
+      if (searchTerm && !searchableFields.some(value => String(value ?? "").toLowerCase().includes(searchTerm))) return false;
       if (priority && task.priority !== priority || status && task.status !== status) return false;
       if (view?.priorities?.length && !view.priorities.includes(task.priority)) return false;
       if (view?.statuses?.length && !view.statuses.includes(task.status)) return false;

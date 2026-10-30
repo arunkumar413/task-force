@@ -37,7 +37,8 @@ function serialize(task) {
   const value = task.toJSON();
   if (value.employee && typeof value.employee === "object" && value.employee.name) {
     value.user = value.employee.name;
-    value.employee = String(value.employee._id);
+    // Employee.toJSON exposes "id" and removes "_id" from populated records.
+    value.employee = value.employee.id;
   }
   return value;
 }

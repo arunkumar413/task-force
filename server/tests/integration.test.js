@@ -64,6 +64,7 @@ test("tasks persist all supplied fields and protect tenant and author ownership"
   const task = created.body.data;
   assert.equal(task.tenantId, adminUser.tenantId);
   assert.equal(task.createdBy, adminUser.id);
+  assert.equal(task.employee, adminUser.id);
   assert.equal(task.user, "alpha");
   assert.equal(task.subtasks.length, 1);
   await outsider.get("/api/tasks/" + task.id).expect(404);
@@ -75,6 +76,7 @@ test("tasks persist all supplied fields and protect tenant and author ownership"
     attachments: [{ file_name: "Design", link: "https://example.com/design" }],
   }).expect(200);
   assert.equal(updated.body.data.status, "Cancelled");
+  assert.equal(updated.body.data.employee, adminUser.id);
   assert.equal(updated.body.data.subtasks[0].isDone, true);
   const comment = await admin.post("/api/tasks/" + task.id + "/comments").send({ comment: "Ready to go" }).expect(201);
   assert.equal(comment.body.data.comments[0].author, adminUser.id);
@@ -181,4 +183,40 @@ test("MongoDB demo seeder imports the supplied tasks and can be rerun without du
   await demo.post("/api/login").send({ email: "ava.chen@acme.example", password: "demo123" }).expect(200);
   const tasks = await demo.get("/api/tasks").expect(200);
   assert.equal(tasks.body.data.length, 22);
+});
+
+test("demo employees can add task links, and the old permission grant can be repaired without reseeding", async () => {
+  const employee = request.agent(app);
+  const login = await employee.post("/api/login").send({ email: "liam.ortiz@acme.example", password: "demo123" }).expect(200);
+  const list = await employee.get("/api/mytasks").expect(200);
+  assert.ok(list.body.data.length > 0);
+  assert.ok(list.body.data.every(task => task.employee === login.body.data.id));
+  const accessible = await employee.get("/api/tasks").expect(200);
+  assert.ok(accessible.body.data.every(task => task.employee === login.body.data.id));
+  const task = list.body.data[0];
+  const attachments = [{ file_name: "Requirements", link: "https://example.com/requirements" }];
+  await employee.patch("/api/tasks/" + task.id).send({ attachments }).expect(200);
+  const stored = await employee.get("/api/tasks/" + task.id).expect(200);
+  assert.equal(stored.body.data.attachments[0].link, attachments[0].link);
+
+  const Permission = require("../models/Permission");
+  const Resource = require("../models/Resource");
+  const resource = await Resource.findOne({ key: "task" });
+  const grantFilter = { tenantId: login.body.data.tenantId, role: login.body.data.roleIds[0], resource: resource._id };
+  await Permission.updateOne(grantFilter, { $set: { update: false } });
+  await employee.patch("/api/tasks/" + task.id).send({ attachments }).expect(403);
+  const { repairDemoTaskPermissions } = require("../scripts/repairDemoTaskPermissions");
+  assert.equal((await repairDemoTaskPermissions()).modifiedCount, 1);
+  assert.equal((await repairDemoTaskPermissions()).modifiedCount, 0);
+  // Existing sessions pick up the repaired grant without another sign-in.
+  await employee.patch("/api/tasks/" + task.id).send({ attachments }).expect(200);
+  const repaired = await Permission.findOne(grantFilter);
+  assert.equal(repaired.delete, false);
+  const reloaded = await employee.get("/api/tasks/" + task.id).expect(200);
+  assert.equal(reloaded.body.data.attachments.length, 1);
+  assert.equal(reloaded.body.data.title, task.title);
+
+  const hr = request.agent(app);
+  await hr.post("/api/login").send({ email: "sam.okonkwo@acme.example", password: "demo123" }).expect(200);
+  await hr.patch("/api/tasks/" + task.id).send({ attachments }).expect(403);
 });
