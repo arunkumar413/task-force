@@ -1,27 +1,17 @@
 const express = require("express");
 const { checkAuthentication } = require("../middlewares/checkAuthentication");
 const { checkAuthorization } = require("../middlewares/checkAuthroization");
-const {
-  loginController,
-  logoutController,
-  registerController,
-} = require("../controllers/loginController");
-const { getMyTasks } = require("../controllers/tasksController");
-const { getTaskData } = require("../controllers/getTaskData");
-
+const tasks = require("../controllers/tasksController");
 const router = express.Router();
-
-router.get(
-  "/mytasks",
-  checkAuthentication,
-  checkAuthorization({ resource: "/pets", rolesWithAccess: ["VP", "QA"] }),
-  getMyTasks
-);
-
-router.get("/task-data/:taskId", checkAuthentication, getTaskData);
-
-router.post("/login", loginController);
-router.post("/logout", logoutController);
-router.post("/register", registerController);
-
+router.use(checkAuthentication);
+const allow = action => checkAuthorization({ resource: "task", action });
+router.get("/tasks", allow("read"), tasks.listTasks);
+router.post("/tasks", allow("write"), tasks.createTask);
+router.get("/tasks/:taskId", allow("read"), tasks.getTask);
+router.patch("/tasks/:taskId", allow("update"), tasks.updateTask);
+router.delete("/tasks/:taskId", allow("delete"), tasks.deleteTask);
+router.post("/tasks/:taskId/comments", allow("update"), tasks.addComment);
+router.get("/task-data/:taskId", allow("read"), tasks.getTask);
+router.get("/views", allow("read"), tasks.listViews);
+router.post("/views", allow("read"), tasks.createView);
 module.exports = router;

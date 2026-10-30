@@ -1,24 +1,31 @@
-import React, { StrictMode } from "react";
-import ReactDOM from "react-dom";
-import { App } from "./pages/Home";
-import * as ReactDOMClient from "react-dom/client";
-import { AppRouter } from "./AppRouter";
+import React, { useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { Provider, useDispatch, useSelector } from "react-redux";
 import { RouterProvider } from "react-router-dom";
-import { Provider } from "react-redux";
 import { appStore } from "./store/appStore";
+import { AppRouter } from "./AppRouter";
+import { API_URL } from "./constants";
+import { logout, setUserInfo } from "./store/authSlice";
+import { loadTasks, persistDemo, resetTasks } from "./store/tasksFilterSlice";
+import "./index.css";
+import "./task-force.css";
 
-const el = document.getElementById("app");
-
-const container = document.getElementById("app");
-
-const root = ReactDOMClient.createRoot(container);
-
-root.render(
-  <StrictMode>
-    <Provider store={appStore}>
-      <RouterProvider router={AppRouter} />
-    </Provider>
-  </StrictMode>
-);
-
-// ReactDOM.render(<App />, el);
+persistDemo(appStore);
+function Bootstrap() {
+  const dispatch = useDispatch();
+  const auth = useSelector(state => state.auth);
+  useEffect(() => {
+    fetch(API_URL + "/me", { credentials: "include" })
+      .then(async response => {
+        if (!response.ok) { localStorage.removeItem("userInfo"); dispatch(logout()); return; }
+        const payload = await response.json();
+        dispatch(setUserInfo(payload.data));
+      }).catch(() => dispatch(logout()));
+  }, [dispatch]);
+  useEffect(() => {
+    if (auth.checked) { dispatch(resetTasks()); dispatch(loadTasks()); }
+  }, [auth.checked, auth.isLoggedin, auth.id, dispatch]);
+  if (!auth.checked) return <p className="p-6">Loading Task Force…</p>;
+  return <RouterProvider router={AppRouter} />;
+}
+createRoot(document.getElementById("app")).render(<Provider store={appStore}><Bootstrap /></Provider>);

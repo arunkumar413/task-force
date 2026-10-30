@@ -1,0 +1,16 @@
+{
+  "watch": [
+    "index.js",
+    "constants.js",
+    "DBConfig.js",
+    "controllers",
+    "middlewares",
+    "models",
+    "utils"
+  ],
+  "ext": "js,json",
+  "ignore": ["node_modules", "package-lock.json"],
+  "delay": 250,
+  "legacyWatch": true
+}
+

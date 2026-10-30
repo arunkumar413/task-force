@@ -1,63 +1,104 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const dotenv = require("dotenv");
 const webpack = require("webpack");
 
-const env = dotenv.config().parsed;
+dotenv.config({ path: path.join(__dirname, ".env") });
 
-const envKeys = Object.keys(env).reduce((prev, next) => {
-  prev[`process.env.${next}`] = JSON.stringify(env[next]);
-  return prev;
-}, {});
+module.exports = (env, argv) => {
+  const mode = argv.mode || "development";
+  const isDev = mode === "development";
+  const apiUrl = process.env.REACT_APP_API_URL || "/api";
 
-module.exports = {
-  output: {
-    path: path.join(__dirname, "/dist"), // the bundle output path
-    filename: "bundle.[contenthash].js", // the name of the bundle
-    clean: true,
-    publicPath: "/", // Ensures proper paths for assets
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: "src/index.html", // to import index.html file inside index.js
-    }),
-    new CopyWebpackPlugin({
-      patterns: [
-        { from: "public", to: "" }, // Copies 'public' directory to 'dist'
-      ],
-    }),
-    new webpack.DefinePlugin(envKeys),
-  ],
-  devServer: {
-    port: 3031, // you can change the port
-    historyApiFallback: true, // For single-page applications
-    static: {
-      directory: path.join(__dirname, "public"),
+  return {
+    mode,
+    output: {
+      path: path.join(__dirname, "/dist"),
+      filename: isDev ? "bundle.js" : "bundle.[contenthash].js",
+      clean: !isDev,
+      publicPath: "/",
     },
-  },
-  module: {
-    rules: [
-      {
-        test: /\.(js|jsx)$/, // .js and .jsx files
-        exclude: /node_modules/, // excluding the node_modules folder
-        use: {
-          loader: "babel-loader",
+    watchOptions: {
+      ignored: /node_modules/,
+      aggregateTimeout: 300,
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        template: "src/index.html",
+      }),
+      new CopyWebpackPlugin({
+        patterns: [{ from: "public", to: "" }],
+      }),
+      new webpack.DefinePlugin({
+        "process.env": `(${JSON.stringify({
+          NODE_ENV: mode,
+          REACT_APP_API_URL: apiUrl,
+          REACT_APP_API_KEY: process.env.REACT_APP_API_KEY || "",
+          IS_RR_BUILD_REQUEST: "",
+        })})`,
+      }),
+      ...(isDev ? [new ReactRefreshWebpackPlugin({ overlay: false })] : []),
+    ],
+    devServer: {
+      port: 3031,
+      historyApiFallback: true,
+      hot: true,
+      liveReload: true,
+      watchFiles: {
+        paths: ["src/**/*", "public/**/*"],
+        options: {
+          ignored: /node_modules/,
         },
       },
-      {
-        test: /\.(sa|sc|c)ss$/, // styles files
-        use: ["style-loader", "css-loader", "sass-loader"],
+      proxy: [
+        {
+          context: ["/api"],
+          target: "http://localhost:3000",
+          changeOrigin: true,
+        },
+      ],
+      client: {
+        overlay: {
+          errors: true,
+          warnings: false,
+          runtimeErrors: false,
+        },
       },
-      {
-        test: /\.(png|woff|woff2|eot|ttf|svg)$/, // to import images and fonts
-        loader: "url-loader",
-        options: { limit: false },
-      },
-    ],
-  },
-  resolve: {
-    extensions: [".js", ".jsx"], // Automatically resolve certain extensions
-    modules: [path.resolve(__dirname, "src"), "node_modules"],
-  },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(js|jsx)$/,
+          exclude: /node_modules/,
+          use: {
+            loader: "babel-loader",
+            options: {
+              presets: ["@babel/preset-env", "@babel/preset-react"],
+              plugins: isDev ? ["react-refresh/babel"] : [],
+            },
+          },
+        },
+        {
+          test: /\.(sa|sc)ss$/,
+          use: ["style-loader", "css-loader", "postcss-loader", "sass-loader"],
+        },
+        {
+          test: /\.css$/,
+          use: ["style-loader", "css-loader", "postcss-loader"],
+        },
+        {
+          test: /\.(png|woff|woff2|eot|ttf|svg)$/,
+          loader: "url-loader",
+          options: { limit: false },
+        },
+      ],
+    },
+    resolve: {
+      extensions: [".js", ".jsx"],
+      modules: [path.resolve(__dirname, "src"), "node_modules"],
+    },
+  };
 };
+

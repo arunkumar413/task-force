@@ -1,90 +1,31 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout, setUserInfo } from "../store/authSlice";
-
+import { logout } from "../store/authSlice";
+import { clearApiResponses } from "../store/apiSlice";
+import { ThemeSelect } from "./ThemeSelect";
+import { API_URL } from "../constants";
 export function Header() {
+  const auth = useSelector(state => state.auth);
   const dispatch = useDispatch();
-  const auth = useSelector((state) => state.auth);
-
-  // Single useEffect to handle both scenarios: initial load and auth changes
-  useEffect(() => {
-    let userObj = localStorage.getItem("userInfo");
-    if (userObj) {
-      let userJson = JSON.parse(userObj);
-      dispatch(
-        setUserInfo({
-          username: userJson.username,
-          email: userJson.email,
-          isLoggedIn: true,
-        })
-      );
-    }
-  }, [auth]); // Runs on initial mount and when `auth` changes
-
-  async function handleLogout() {
-    let res = await fetch("http://localhost:3000/api/logout", {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify({ a: 1, b: 2 }),
-      credentials: "include",
-    });
-    if (res.status === 200) {
+  const [error, setError] = useState("");
+  async function signOut() {
+    try {
+      const response = await fetch(API_URL + "/logout", { method: "POST", credentials: "include" });
+      if (!response.ok) throw new Error("Unable to sign out");
       localStorage.removeItem("userInfo");
+      dispatch(clearApiResponses());
       dispatch(logout());
-      await res.json();
-    } else {
-      console.log("logout failed");
-    }
+    } catch (err) { setError(err.message); }
   }
-
-  return (
-    <header>
-      <nav
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "flex-start",
-          gap: "1rem",
-          gridColumn: "1/10",
-          alignItems: "center",
-        }}
-      >
-        <Link to="/"> Home </Link>
-        <Link to="/add-new-task"> New task </Link>
-        <Link to="/create-view"> Create view </Link>
-
-        {auth.username && <span> Logged in as {auth.email}</span>}
-        {auth.username && <button onClick={handleLogout}> Logout </button>}
-      </nav>
-      <div style={{ gridColumn: "10/11" }} className="lucide-user-header-icon">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-user"
-        >
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-        <div className="user-dropdown-content">
-          {auth.username && <span> {auth.email}</span>}
-        </div>
-      </div>
-      <div>
-        <Link to="/login"> Login </Link>
-      </div>
-      <div>
-        <Link to="/register"> Register </Link>
-      </div>
-    </header>
-  );
+  return <header className="border-b border-slate-200 bg-surface">
+    <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-4">
+      <Link className="font-semibold text-slate-900" to="/">Task Force</Link>
+      <Link to="/add-new-task">New task</Link><Link to="/create-view">Create view</Link>
+      {auth.isLoggedin ? <><Link to="/profile">Profile & organization</Link><span className="text-sm text-slate-500">{auth.email}</span><button onClick={signOut}>Sign out</button></> :
+        <><Link to="/login">Sign in</Link><Link to="/register">Create organization</Link></>}
+      <ThemeSelect />
+      {error && <p role="alert">{error}</p>}
+    </nav>
+  </header>;
 }

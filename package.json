@@ -1,0 +1,24 @@
+{
+  "name": "task-force",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "postinstall": "npm --prefix client install && npm --prefix server install",
+    "test": "npm --prefix server test",
+    "test:ui": "playwright test",
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "seed:demo": "npm --prefix server run seed:demo",
+    "build": "npm --prefix client run build",
+    "gcp-build": "npm --prefix client install --include=dev && npm --prefix client run build",
+    "start": "npm --prefix server start"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/* Semantic tokens are the single source of truth for both color schemes.
+   Slate aliases keep existing utility-based screens in sync with the theme. */
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: var(--theme-primary);
+  --color-primary-hover: var(--theme-primary-hover);
+  --color-surface: var(--theme-surface);
+  --color-slate-50: var(--theme-canvas);
+  --color-slate-100: var(--theme-muted);
+  --color-slate-200: var(--theme-border);
+  --color-slate-300: var(--theme-control-border);
+  --color-slate-400: var(--theme-subtle);
+  --color-slate-500: var(--theme-secondary);
+  --color-slate-600: var(--theme-secondary);
+  --color-slate-700: var(--theme-text);
+  --color-slate-800: var(--theme-heading);
+  --color-slate-900: var(--theme-heading);
+}
+
+:root {
+  color-scheme: light;
+  --theme-primary: #4f46e5;
+  --theme-primary-hover: #4338ca;
+  --theme-surface: #ffffff;
+  --theme-canvas: #f5f6fb;
+  --theme-muted: #eef0f8;
+  --theme-border: #e3e6f0;
+  --theme-control-border: #cbd1e2;
+  --theme-subtle: #707b94;
+  --theme-secondary: #59647c;
+  --theme-text: #35415a;
+  --theme-heading: #202b43;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --theme-primary: #6366f1;
+  --theme-primary-hover: #4f46e5;
+  --theme-surface: #1b2235;
+  --theme-canvas: #121827;
+  --theme-muted: #242d43;
+  --theme-border: #303a52;
+  --theme-control-border: #46516b;
+  --theme-subtle: #9aa7c0;
+  --theme-secondary: #b0bbd0;
+  --theme-text: #d0d8e9;
+  --theme-heading: #f0f3fb;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--theme-canvas);
+    color: var(--theme-text);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--theme-heading);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.3;
+  }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.125rem; }
+  button, input, select { font: inherit; }
+  button, a, input, select {
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  button:not(:disabled), select { cursor: pointer; }
+  input, select { accent-color: var(--theme-primary); }
+  select {
+    background-color: var(--theme-surface);
+    color: var(--theme-heading);
+  }
+  :focus-visible {
+    outline: 2px solid var(--theme-primary);
+    outline-offset: 3px;
+  }
+  ::selection { background: #c7d2fe; color: #1e1b4b; }
+}
+
+@layer components {
+  .theme-select {
+    @apply rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700;
+  }
+  .shadow-sm {
+    box-shadow: 0 2px 6px rgb(20 30 65 / 0.025), 0 12px 30px rgb(20 30 65 / 0.035);
+  }
+}
+
+/* Native select widgets ignore line-height on some platforms. Normalize the
+   closed control while retaining the keyboard-accessible native option menu.
+   Keep this outside Tailwind's layers so padding utilities reserve arrow space. */
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: inherit;
+  padding-right: 2.5rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 1rem center, right 0.75rem center;
+  background-size: 0.25rem 0.25rem;
+  background-repeat: no-repeat;
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (forced-colors: active) {
+  select:not([multiple]):not([size]) {
+    appearance: auto;
+    -webkit-appearance: auto;
+    background-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+

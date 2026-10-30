@@ -1,140 +1,95 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { tasks } from "./tasks";
-import {
-  addWeeks,
-  endOfTomorrow,
-  add,
-  addMonths,
-  isToday,
-  isTomorrow,
-  isThisWeek,
-  isThisMonth,
-} from "date-fns";
-import {
-  IsDateFallsInNextWeek,
-  isDateFallsInNextMonth,
-  isDateFallsInThisWeek,
-} from "../../util";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { tasks as sampleTasks } from "./tasks";
+import { API_URL } from "../constants";
 
-export const taskSlice = createSlice({
-  name: "taskSlice",
-  initialState: {
-    value: 0,
-    tasksData: tasks,
-    sortedTasks: [],
-    filteredTasks: [],
-    isLowSelected: true,
-    isMediumSelected: true,
-    isHighSelected: true,
-    isUrgentSelected: true,
-    selectedTask: {
-      title: "My task one",
-      dueDate: new Date().toISOString(),
-      priority: "High",
-      status: "In progress",
-      user: "Arun",
-      description: " description",
-    },
-    today: [],
-    tomorrow: [],
-    thisWeek: [],
-    nextWeek: [],
-    thisMonth: [],
-    nextMonth: [],
-  },
-  reducers: {
-    increment: (state) => {
-      state.value += 1;
-    },
-    decrement: (state) => {
-      state.value -= 1;
-    },
-    incrementByAmount: (state, action) => {
-      state.value += action.payload;
-    },
-
-    sortTasksByDate: function (state, action) {
-      state.sortedTasks = state.tasksData.sort(
-        (a, b) => new Date(a.dueDate) - new Date(b.dueDate)
-      );
-    },
-    setLowSelected: function (state, action) {
-      state.isLowSelected = !state.isLowSelected;
-    },
-
-    setMediumSelected: function (state, action) {
-      state.isMediumSelected = !state.isMediumSelected;
-    },
-    setHighSelected: function (state, action) {
-      state.isHighSelected = !state.isHighSelected;
-    },
-    setUrgentSelected: function (state, action) {
-      state.isUrgentSelected = !state.isUrgentSelected;
-    },
-
-    filterTasks: function (state, action) {
-      let filteredTasks = state.sortedTasks.filter(function (item, index) {
-        if (state.isLowSelected && item.priority === "Low") {
-          return item;
-        } else if (state.isMediumSelected && item.priority === "Medium") {
-          return item;
-        } else if (state.isHighSelected && item.priority === "High") {
-          return item;
-        } else if (state.isUrgentSelected && item.priority === "Urgent") {
-          return item;
-        }
-      });
-
-      state.filteredTasks = filteredTasks;
-    },
-    setSelectedTask: function (state, action) {
-      state.selectedTask = action.payload;
-    },
-    categorizeTasks: function (state, action) {
-      let today = [];
-      let tomorrow = [];
-      let thisWeek = [];
-      let nextWeek = [];
-      let thisMonth = [];
-      let nextMonth = [];
-      state.filteredTasks.forEach(function (item) {
-        if (isToday(new Date(item.dueDate))) {
-          today.push(item);
-        } else if (isTomorrow(new Date(item.dueDate))) {
-          tomorrow.push(item);
-        } else if (isThisWeek(new Date(item.dueDate))) {
-          thisWeek.push(item);
-        } else if (IsDateFallsInNextWeek(new Date(item.dueDate))) {
-          nextWeek.push(item);
-        } else if (isThisMonth(new Date(item.dueDate))) {
-          thisMonth.push(item);
-        } else if (isDateFallsInNextMonth(item.dueDate)) {
-          nextMonth.push(item);
-        }
-      });
-      state.today = today;
-      state.tomorrow = tomorrow;
-      state.thisWeek = thisWeek;
-      state.nextWeek = nextWeek;
-      state.thisMonth = thisMonth;
-      state.nextMonth = nextMonth;
-    },
-  },
+const DEMO_KEY = "task-force-demo-v1";
+function readDemo() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DEMO_KEY));
+    if (saved && Array.isArray(saved.items) && Array.isArray(saved.views)) return saved;
+  } catch {}
+  return { items: sampleTasks, views: [] };
+}
+async function request(path, options = {}) {
+  const response = await fetch(API_URL + path, { credentials: "include", ...options,
+    headers: { "Content-Type": "application/json", ...options.headers } });
+  const payload = response.status === 204 ? null : await response.json();
+  if (!response.ok) throw new Error(payload?.statusMessage || "Request failed");
+  return payload?.data;
+}
+export const loadTasks = createAsyncThunk("tasks/load", async (_, { getState }) => {
+  const auth = getState().auth;
+  const owner = auth.isLoggedin ? auth.id : "demo";
+  if (!auth.isLoggedin) return { ...readDemo(), owner };
+  const [items, views] = await Promise.all([request("/tasks"), request("/views")]);
+  return { items, views, owner };
 });
-
-// Action creators are generated for each case reducer function
-export const {
-  increment,
-  decrement,
-  incrementByAmount,
-  setLowSelected,
-  setMediumSelected,
-  setHighSelected,
-  setUrgentSelected,
-  filterTasks,
-  sortTasksByDate,
-  categorizeTasks,
-  setSelectedTask,
-} = taskSlice.actions;
-
-export default taskSlice.reducer;
+export const saveTask = createAsyncThunk("tasks/save", async (task, { getState, dispatch }) => {
+  if (getState().auth.isLoggedin) {
+    const result = await request(task.id ? "/tasks/" + task.id : "/tasks", {
+      method: task.id ? "PATCH" : "POST", body: JSON.stringify(task),
+    });
+    dispatch(upsertTask(result));
+    return result;
+  }
+  const current = getState().tasks.items.find(item => item.id === task.id) || {};
+  const merged = { ...current, ...task };
+  const result = { ...merged, id: merged.id || crypto.randomUUID(), user: merged.user || "Demo user",
+    comments: merged.comments || [], subtasks: merged.subtasks || [], attachments: merged.attachments || [] };
+  dispatch(upsertTask(result));
+  return result;
+});
+export const deleteTask = createAsyncThunk("tasks/delete", async (id, { getState, dispatch }) => {
+  if (getState().auth.isLoggedin) await request("/tasks/" + id, { method: "DELETE" });
+  dispatch(removeTask(id));
+});
+export const postComment = createAsyncThunk("tasks/comment", async ({ id, comment }, { getState, dispatch }) => {
+  let task;
+  if (getState().auth.isLoggedin) {
+    task = await request("/tasks/" + id + "/comments", { method: "POST", body: JSON.stringify({ comment }) });
+  } else {
+    const current = getState().tasks.items.find(item => item.id === id);
+    task = { ...current, comments: [...current.comments, { id: crypto.randomUUID(), comment, username: "Demo user", createdAt: new Date().toISOString(), attachments: [] }] };
+  }
+  dispatch(upsertTask(task));
+});
+export const saveView = createAsyncThunk("tasks/view", async (view, { getState, dispatch }) => {
+  const result = getState().auth.isLoggedin
+    ? await request("/views", { method: "POST", body: JSON.stringify(view) })
+    : { ...view, id: crypto.randomUUID() };
+  dispatch(addView(result));
+  return result;
+});
+const slice = createSlice({
+  name: "tasks",
+  initialState: { items: [], views: [], owner: null, loading: false, loaded: false, error: "" },
+  reducers: {
+    upsertTask(state, { payload }) {
+      const index = state.items.findIndex(task => task.id === payload.id);
+      if (index < 0) state.items.push(payload); else state.items[index] = payload;
+    },
+    removeTask(state, { payload }) { state.items = state.items.filter(task => task.id !== payload); },
+    addView(state, { payload }) { state.views.push(payload); },
+    resetTasks(state) { state.items = []; state.views = []; state.loaded = false; state.owner = null; },
+  },
+  extraReducers: builder => builder
+    .addCase(loadTasks.pending, (state, action) => { state.loading = true; state.error = ""; state.requestId = action.meta.requestId; })
+    .addCase(loadTasks.fulfilled, (state, { payload, meta }) => {
+      if (state.requestId !== meta.requestId) return;
+      Object.assign(state, payload, { loading: false, loaded: true });
+    })
+    .addCase(loadTasks.rejected, (state, action) => {
+      if (state.requestId !== action.meta.requestId) return;
+      state.loading = false; state.error = action.error.message;
+    }),
+});
+export const { upsertTask, removeTask, addView, resetTasks } = slice.actions;
+export function persistDemo(store) {
+  store.subscribe(() => {
+    const { auth, tasks } = store.getState();
+    if (!auth.isLoggedin && tasks.owner === "demo") {
+      try { localStorage.setItem(DEMO_KEY, JSON.stringify({ items: tasks.items, views: tasks.views })); } catch {}
+    }
+  });
+}
+export default slice.reducer;

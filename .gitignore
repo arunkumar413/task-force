@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Browser test output
+test-results/
+playwright-report/

@@ -1,0 +1,88 @@
+const { test, expect } = require("@playwright/test");
+test.beforeEach(async ({ page }) => {
+  page.on("pageerror", error => console.error("Browser error:", error.message));
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+});
+
+test("demo tasks, editing, comments, subtasks, views, reloads, and themes", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "All tasks" })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await page.screenshot({ path: test.info().outputPath("workspace.png"), fullPage: true });
+  await expect(page.getByRole("heading", { name: "Overdue (4)" })).toBeVisible();
+  await page.getByRole("link", { name: "+ New task", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Browser demo task");
+  await page.getByLabel("Description (Markdown)").fill("**Browser checked**");
+  await page.getByLabel("Priority", { exact: true }).selectOption("Urgent");
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Browser demo task", exact: true })).toBeVisible();
+  await expect(page.locator(".markdown strong")).toHaveText("Browser checked");
+  await page.getByLabel("New subtask").fill("Check UI");
+  await page.getByRole("button", { name: "Add subtask" }).click();
+  await page.getByRole("checkbox", { name: "Check UI" }).check();
+  await page.getByLabel("Add a comment").fill("Browser comment");
+  await page.getByRole("button", { name: "Add comment" }).click();
+  await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeChecked();
+  await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Edit task", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Updated browser task");
+  await page.getByRole("button", { name: "Update task" }).click();
+  await expect(page.getByRole("heading", { name: "Updated browser task" })).toBeVisible();
+  await page.getByRole("link", { name: "Create view", exact: true }).click();
+  await page.getByLabel("View name").fill("Urgent work");
+  await page.getByRole("checkbox", { name: "Urgent", exact: true }).check();
+  await page.getByRole("button", { name: "Save view" }).click();
+  await expect(page.getByRole("heading", { name: "Urgent work", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Updated browser task", exact: true })).toBeVisible();
+  await page.getByLabel("Color theme").selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(errors).toEqual([]);
+});
+
+test("signed-in tasks persist in MongoDB and profile features render", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("ava.chen@acme.example");
+  await page.getByLabel("Password", { exact: true }).fill("demo123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(22);
+  await expect(page.locator(".demo-banner")).toHaveCount(0);
+  await page.getByRole("link", { name: "+ New task", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("MongoDB browser task");
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "MongoDB browser task", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "MongoDB browser task", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Profile & organization" }).click();
+  await expect(page.getByRole("heading", { name: "Ava Chen", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Signed-in devices" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Resource access", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.locator(".demo-banner")).toBeVisible();
+  await expect(page.getByRole("link", { name: "MongoDB browser task", exact: true })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("organization registration works through the form", async ({ page }) => {
+  await page.goto("/register");
+  await page.getByLabel(/Organization name/).fill("Browser Org");
+  await page.getByLabel("Username", { exact: true }).fill("browser-admin");
+  await page.getByLabel("Email", { exact: true }).fill("browser-admin@example.com");
+  await page.getByLabel("Password", { exact: true }).fill("browser-password-123");
+  await page.getByLabel("Confirm password", { exact: true }).fill("browser-password-123");
+  await page.getByRole("button", { name: /Create/ }).click();
+  await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
+  await expect(page.locator(".demo-banner")).toHaveCount(0);
+  await page.getByRole("link", { name: "Profile & organization" }).click();
+  await expect(page.getByRole("heading", { name: "browser-admin", exact: true })).toBeVisible();
+});
