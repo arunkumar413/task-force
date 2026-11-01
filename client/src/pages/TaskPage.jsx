@@ -1,4 +1,5 @@
-import { Button, markdownClasses, Input, Textarea } from "../components/FormControls";
+import { Button, markdownClasses, Input } from "../components/FormControls";
+import { MarkdownEditor } from "../components/MarkdownEditor";
 import React, { useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -140,7 +141,7 @@ export function TaskPage() {
           comment: comment.trim()
         }), () => setComment(""));
       }}>
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Add a comment<Textarea rows={4} value={comment} maxLength={20000} onChange={e => setComment(e.target.value)} required /></label><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || !comment.trim()}>Add comment</Button>
+        <MarkdownEditor label="Add a comment" name="comment" rows={4} maxLength={20000} value={comment} onChange={e => setComment(e.target.value)} disabled={busy} placeholder="Write a comment using Markdown…" previewTestId="comment-preview" /><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || !comment.trim()}>Add comment</Button>
       </form>
     </section>
   </>;

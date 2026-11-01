@@ -336,3 +336,30 @@ test("department paths default in Labels and Enter adds removable labels without
   await expect(page.getByRole("button", { name: "Remove label /engineering/backend", exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Required department label /engineering/backend", { exact: true })).toBeVisible();
 });
+
+test("comments preview Markdown, post from preview, and retain formatting after reload", async ({ page }) => {
+  await page.goto("/add-new-task");
+  await page.getByLabel("Title", { exact: true }).fill("Markdown comment task");
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Markdown comment task", exact: true })).toBeVisible();
+  const draft = "**Comment emphasis**\n\n- First item\n- Second item\n\n[Reference](https://example.com)\n\n`const checked = true`\n\n<script>alert('unsafe')</script>";
+  await page.getByLabel("Add a comment", { exact: true }).fill(draft);
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
+  const preview = page.getByTestId("comment-preview");
+  await expect(preview.locator("strong")).toHaveText("Comment emphasis");
+  await expect(preview.locator("li")).toHaveCount(2);
+  await expect(preview.locator("code")).toHaveText("const checked = true");
+  await expect(preview.locator("script")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Edit", exact: true }).click();
+  await expect(page.getByLabel("Add a comment", { exact: true })).toHaveValue(draft);
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  const posted = page.locator("article");
+  await expect(posted.locator("strong")).toHaveText("Comment emphasis");
+  await expect(posted.getByRole("link", { name: "Reference" })).toHaveAttribute("href", "https://example.com");
+  await expect(preview).toContainText("Nothing to preview yet.");
+  await page.reload();
+  await expect(posted.locator("strong")).toHaveText("Comment emphasis");
+  await expect(posted.locator("li")).toHaveCount(2);
+  await expect(posted.locator("script")).toHaveCount(0);
+});
