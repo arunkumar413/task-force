@@ -249,3 +249,70 @@ test("assignee search and assignment stay within the active organization directo
   await member.patch("/api/tasks/" + created.body.data.id).send({ employee: noah.id }).expect(400);
   await Employee.updateOne({ _id: noah.id }, { isActive: true });
 });
+
+test("email changes require the current password, rotate sessions, and invalidate old OTPs", async () => {
+  const owner = request.agent(app);
+  const identity = await register(owner, "email-security");
+  const payload = { name: identity.name, username: identity.username, email: "replacement@example.com" };
+  await owner.post("/api/profile/password/otp").send({}).expect(200);
+  const previousCode = outbox.at(-1).text.match(/\b\d{6}\b/)[0];
+  const missing = await owner.patch("/api/profile").send(payload).expect(403);
+  const wrong = await owner.patch("/api/profile").send({ ...payload, currentPassword: "wrong-password" }).expect(403);
+  assert.equal(missing.body.statusMessage, wrong.body.statusMessage);
+  const unchanged = await owner.get("/api/me").expect(200);
+  assert.equal(unchanged.body.data.email, identity.email);
+  await owner.patch("/api/profile").send({ ...payload, email: identity.email, name: "Updated name" }).expect(200);
+  const updated = await owner.patch("/api/profile").send({ ...payload, currentPassword: password }).expect(200);
+  assert.ok(updated.headers["set-cookie"]);
+  assert.equal(updated.body.data.employee.email, payload.email);
+  await owner.post("/api/profile/password").send({ otp: previousCode, password: "replacement-password", confirmPassword: "replacement-password" }).expect(400);
+  const me = await owner.get("/api/me").expect(200);
+  assert.equal(me.body.data.email, payload.email);
+  await request(app).post("/api/login").send({ email: payload.email, password }).expect(200);
+});
+
+test("login failures are generic and account limits cannot be bypassed by new sessions or forwarded headers", async () => {
+  const { AuthRateLimit } = require("../middlewares/authRateLimit");
+  await AuthRateLimit.deleteMany({});
+  const validEmail = "replacement@example.com";
+  const wrong = await request(app).post("/api/login").send({ email: validEmail, password: "incorrect" }).expect(401);
+  const unknown = await request(app).post("/api/login").send({ email: "unknown-security@example.com", password: "incorrect" }).expect(401);
+  const badOrg = await request(app).post("/api/login").send({ email: validEmail, password, organizationSlug: "missing-organization" }).expect(401);
+  assert.deepEqual(wrong.body, unknown.body);
+  assert.deepEqual(wrong.body, badOrg.body);
+  await request(app).post("/api/login").send({ email: { $ne: null }, password }).expect(400);
+  await AuthRateLimit.deleteMany({});
+  const attempts = await Promise.all(Array.from({ length: 12 }, (_, i) => request(app).post("/api/login")
+    .set("X-Forwarded-For", "198.51.100." + i)
+    .send({ email: i % 2 ? " REPLACEMENT@EXAMPLE.COM " : validEmail, password: "incorrect", organizationSlug: i % 2 ? "missing-organization" : undefined })));
+  assert.equal(attempts.filter(response => response.status === 401).length, 10);
+  assert.equal(attempts.filter(response => response.status === 429).length, 2);
+  const blocked = await request(app).post("/api/login").send({ email: validEmail, password }).expect(429);
+  assert.ok(Number(blocked.headers["retry-after"]) > 0);
+  await AuthRateLimit.deleteMany({});
+  await request(app).post("/api/login").send({ email: validEmail, password }).expect(200);
+});
+
+test("IP login and registration budgets are independent shared counters", async () => {
+  const { AuthRateLimit } = require("../middlewares/authRateLimit");
+  await AuthRateLimit.deleteMany({});
+  for (let i = 0; i < 100; i++) await request(app).post("/api/login").send({ email: "invalid-" + i }).expect(400);
+  await request(app).post("/api/login").set("X-Forwarded-For", "203.0.113.1").send({ email: "different@example.com", password }).expect(429);
+  await AuthRateLimit.deleteMany({});
+  for (let i = 0; i < 20; i++) await request(app).post("/api/register").send({}).expect(400);
+  await request(app).post("/api/register").send({}).expect(429);
+  await AuthRateLimit.deleteMany({});
+});
+
+test("current-password guesses on email changes are limited per employee", async () => {
+  const { AuthRateLimit } = require("../middlewares/authRateLimit");
+  await AuthRateLimit.deleteMany({});
+  const owner = request.agent(app);
+  await owner.post("/api/login").send({ email: "replacement@example.com", password }).expect(200);
+  const payload = { name: "Owner", username: "email-security", email: "takeover@example.com", currentPassword: "incorrect" };
+  for (let i = 0; i < 10; i++) await owner.patch("/api/profile").send(payload).expect(403);
+  await owner.patch("/api/profile").send(payload).expect(429);
+  const me = await owner.get("/api/me").expect(200);
+  assert.equal(me.body.data.email, "replacement@example.com");
+  await AuthRateLimit.deleteMany({});
+});

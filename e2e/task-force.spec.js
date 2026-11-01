@@ -281,3 +281,20 @@ test("create and edit tasks with searchable organization assignees", async ({ pa
   await page.getByRole("link", { name: "Edit task", exact: true }).click();
   await expect(assignee).toHaveValue("Sofia Berg");
 });
+
+test("profile email changes request the current password", async ({ page }) => {
+  await page.request.post("/api/register", { data: { username: "Security Browser", email: "security-browser@example.com", password: "browser-security-password", organizationName: "Browser Security" } });
+  await page.goto("/profile");
+  await page.getByRole("button", { name: "Edit profile", exact: true }).click();
+  await page.getByLabel("Email", { exact: true }).fill("security-browser-updated@example.com");
+  const password = page.getByLabel("Current password to change email", { exact: true });
+  await expect(password).toBeVisible();
+  await password.fill("incorrect-password");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByText("Enter your current password to change your email", { exact: true })).toBeVisible();
+  await password.fill("browser-security-password");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByText("Profile updated.", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("security-browser-updated@example.com", { exact: true }).first()).toBeVisible();
+});

@@ -19,6 +19,7 @@ const { dynamicQueryParams } = require("./controllers/dynamicQueryParams");
 const { getMyTasks } = require("./controllers/tasksController");
 const logger = require("./logger");
 const app = express();
+const { loginLimits, registrationLimit, emailChangeLimit } = require("./middlewares/authRateLimit");
 const isProduction = process.env.NODE_ENV === "production";
 const clientDist = path.join(__dirname, "../client/dist");
 const authorize = (resource, action) => checkAuthorization({ resource, action });
@@ -46,13 +47,13 @@ app.use(session({
   cookie: { secure: isProduction, httpOnly: true, sameSite: "lax", maxAge: SESSION_MAX_AGE_MS, path: "/" },
 }));
 app.get("/api", (req,res) => res.json({ data: "Task Force API" }));
-app.post("/api/register", auth.registerController);
-app.post("/api/login", auth.loginController);
+app.post("/api/register", registrationLimit, auth.registerController);
+app.post("/api/login", loginLimits, auth.loginController);
 app.post("/api/logout", auth.logoutController);
 app.post("/api/invite/accept", invite.acceptInvite);
 app.get("/api/me", authenticate, auth.getSessionController);
 app.get("/api/profile", authenticate, profile.getProfile);
-app.patch("/api/profile", authenticate, profile.updateProfile);
+app.patch("/api/profile", authenticate, emailChangeLimit, profile.updateProfile);
 app.post("/api/profile/password/otp", authenticate, password.requestPasswordOtp);
 app.post("/api/profile/password", authenticate, password.changePassword);
 app.get("/api/resources", authenticate, authorize("resource", "read"), listResources);

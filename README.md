@@ -66,6 +66,8 @@ Configure `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and 
 
 All task queries are scoped to the signed-in tenant. Administrators can access organization tasks; other employees can access tasks assigned to themselves or their reports, and tasks they created. Assignments can target any active employee in that tenant. Create and edit forms search the organization directory by name, email, or username. Resource permissions independently control each action.
 
+Email changes require the current password and rotate the session while invalidating outstanding verification codes. Authentication limits use shared MongoDB counters over 15-minute fixed windows: 10 login attempts per normalized email, 100 per client IP, 20 registrations per IP, and 10 profile updates per employee. Successful attempts count toward these limits. Exceeded limits return HTTP 429 with `Retry-After`. In production, configure the trusted reverse proxy to strip client-supplied forwarded headers and supply the real client IP.
+
 Saved views belong to a tenant and employee. MongoDB sessions are stored separately from device-session metadata; passwords and OTPs are hashed. There is no PostgreSQL dependency. Existing PostgreSQL records are not automatically migrated.
 
 ## Task API

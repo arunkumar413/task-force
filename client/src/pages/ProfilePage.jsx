@@ -54,6 +54,7 @@ export function ProfilePage() {
   const hierarchy = hierarchyResponse.data || null;
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -113,11 +114,13 @@ export function ProfilePage() {
     });
   }
   function startEdit() {
+    setCurrentPassword("");
     setNotice("");
     setError("");
     setEditing(true);
   }
   function cancelEdit() {
+    setCurrentPassword("");
     if (!employee) {
       return;
     }
@@ -137,13 +140,13 @@ export function ProfilePage() {
     setError("");
     setNotice("");
     try {
-      const result = await apiRequest(dispatch, "profile", `${API_URL}/profile`, {
+      const result = await apiRequest(dispatch, "updateProfile", `${API_URL}/profile`, {
         method: "PATCH",
         credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ ...form, currentPassword })
       });
       if (!result.response.ok) {
         setError(result.payload.statusMessage || "Unable to update profile.");
@@ -158,6 +161,7 @@ export function ProfilePage() {
         phone: nextEmployee.phone || ""
       });
       setEditing(false);
+      setCurrentPassword("");
       setNotice("Profile updated.");
       if (result.payload.data.session) {
         const stored = JSON.parse(localStorage.getItem("userInfo") || "{}");
@@ -259,6 +263,10 @@ export function ProfilePage() {
                   <span className="font-medium text-slate-700">Phone number</span>
                   <Input className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" name="phone" type="tel" value={form.phone} onChange={handleChange} />
                 </label>
+                {form.email.trim().toLowerCase() !== employee.email && <label className="block text-sm sm:col-span-2">
+                  <span className="font-medium text-slate-700">Current password to change email</span>
+                  <Input className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required />
+                </label>}
                 <label className="block text-sm">
                   <span className="font-medium text-slate-700">Designation</span>
                   <Input className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" name="designation" value={form.designation} onChange={handleChange} />

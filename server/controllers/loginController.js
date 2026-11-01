@@ -1,4 +1,7 @@
 const bcrypt = require("bcryptjs");
+// Use the same expensive comparison when an account does not exist.
+const dummyHash = bcrypt.hashSync("unused-random-comparison-value", 10);
+const invalidLogin = res => res.status(401).json({ statusMessage: "Invalid email, password, or organization" });
 const Employee = require("../models/Employee");
 const Organization = require("../models/Organization");
 const { slugify, buildSessionUser } = require("../utils/authSession");
@@ -107,10 +110,10 @@ module.exports.registerController = async function (req, res) {
 
 module.exports.loginController = async function (req, res) {
   try {
-    const email = (req.body.email || "").toLowerCase().trim();
+    const email = typeof req.body.email === "string" ? req.body.email.toLowerCase().trim() : "";
     const { password, organizationSlug } = req.body;
 
-    if (!email || !password) {
+    if (!email || email.length > 320 || typeof password !== "string" || !password || typeof organizationSlug !== "undefined" && typeof organizationSlug !== "string") {
       return res.status(400).json({
         statusMessage: "email and password are required",
       });
@@ -123,7 +126,8 @@ module.exports.loginController = async function (req, res) {
         slug: slugify(organizationSlug),
       });
       if (!organization) {
-        return res.status(401).json({ statusMessage: "User not found" });
+        await bcrypt.compare(password, dummyHash);
+        return invalidLogin(res);
       }
       employee = await Employee.findOne({
         tenantId: organization._id,
@@ -133,31 +137,19 @@ module.exports.loginController = async function (req, res) {
     } else {
       const matches = await Employee.find({ email, isActive: true });
       if (matches.length > 1) {
-        return res.status(400).json({
-          statusMessage: "Specify organizationSlug to choose a tenant",
-        });
+        await bcrypt.compare(password, dummyHash);
+        return invalidLogin(res);
       }
       employee = matches[0];
     }
 
-    if (!employee) {
-      return res.status(401).json({ statusMessage: "User not found" });
-    }
-
-    if (employee.mustSetPassword) {
-      return res.status(403).json({
-        statusMessage:
-          "Set your password using the invite code sent to your email",
-      });
-    }
-
     const passwordCheckStatus = await bcrypt.compare(
       password,
-      employee.password
+      employee?.password || dummyHash
     );
 
-    if (!passwordCheckStatus) {
-      return res.status(401).json({ statusMessage: "Password didn't match" });
+    if (!employee || employee.mustSetPassword || !passwordCheckStatus) {
+      return invalidLogin(res);
     }
 
     const sessionUser = await buildSessionUser(employee);

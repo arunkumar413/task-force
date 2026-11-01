@@ -118,6 +118,7 @@ module.exports.changePassword = async function (req, res) {
     const record = await PasswordOtp.findOne({
       employeeId,
       tenantId,
+      email: req.session.user.email,
       purpose: "password-change",
       usedAt: null,
       expiresAt: { $gt: new Date() },

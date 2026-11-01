@@ -1,4 +1,6 @@
 const Employee = require("../models/Employee");
+const bcrypt = require("bcryptjs");
+const PasswordOtp = require("../models/PasswordOtp");
 const Department = require("../models/Department");
 const Organization = require("../models/Organization");
 const { buildSessionUser } = require("../utils/authSession");
@@ -118,6 +120,18 @@ module.exports.updateProfile = async function (req, res) {
       });
     }
 
+    const current = await Employee.findOne({ _id: employeeId, tenantId, isActive: true });
+    if (!current) return res.status(401).json({ statusMessage: "Account is no longer active" });
+    const emailChanged = current.email !== email;
+    if (emailChanged) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) {
+        return res.status(400).json({ statusMessage: "Enter a valid email address" });
+      }
+      if (typeof req.body.currentPassword !== "string" || !await bcrypt.compare(req.body.currentPassword, current.password)) {
+        return res.status(403).json({ statusMessage: "Enter your current password to change your email" });
+      }
+    }
+
     const duplicate = await Employee.findOne({
       tenantId,
       _id: { $ne: employeeId },
@@ -131,7 +145,7 @@ module.exports.updateProfile = async function (req, res) {
     }
 
     const employee = await Employee.findOneAndUpdate(
-      { _id: employeeId, tenantId, isActive: true },
+      { _id: employeeId, tenantId, isActive: true, email: current.email, password: current.password },
       {
         name,
         username,
@@ -152,6 +166,11 @@ module.exports.updateProfile = async function (req, res) {
 
     const organization = await Organization.findById(tenantId).lean();
     const sessionUser = await buildSessionUser(employee);
+
+    if (emailChanged) {
+      await PasswordOtp.updateMany({ employeeId, tenantId, usedAt: null }, { $set: { usedAt: new Date() } });
+      await new Promise((resolve, reject) => req.session.regenerate(err => err ? reject(err) : resolve()));
+    }
 
     req.session.user = sessionUser;
     req.session.save(function (err) {
