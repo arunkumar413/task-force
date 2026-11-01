@@ -1,9 +1,9 @@
 import { Input, Select, Button } from "./FormControls";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { saveTask } from "../store/tasksFilterSlice";
-import { API_URL } from "../constants";
+import { AssigneeSelect } from "./AssigneeSelect";
 import { MarkdownEditor } from "./MarkdownEditor";
 export function TaskForm({
   task
@@ -18,26 +18,11 @@ export function TaskForm({
     employee: task?.employee || auth.id || "1",
     labels: task?.labels?.join(", ") || ""
   }));
-  const [employees, setEmployees] = useState([]);
+  const [assignee, setAssignee] = useState(() => ({ id: String(task?.employee || auth.id || "1"), name: task?.user || auth.name || auth.username || "Demo user 1" }));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  useEffect(() => {
-    if (!auth.isLoggedin) return;
-    const controller = new AbortController();
-    fetch(API_URL + "/employees", {
-      credentials: "include",
-      signal: controller.signal
-    }).then(async res => {
-      if (!res.ok) throw new Error("Unable to load employees");
-      const data = await res.json();
-      setEmployees(data);
-    }).catch(err => {
-      if (err.name !== "AbortError") setError(err.message);
-    });
-    return () => controller.abort();
-  }, [auth.isLoggedin]);
   function change(event) {
     setForm({
       ...form,
@@ -49,7 +34,6 @@ export function TaskForm({
     setSaving(true);
     setError("");
     try {
-      const employee = employees.find(item => String(item.id || item._id) === form.employee);
       const result = await dispatch(saveTask({
         ...form,
         ...(task?.id ? {
@@ -57,7 +41,7 @@ export function TaskForm({
         } : {}),
         dueDate: form.dueDate || null,
         labels: form.labels.split(",").map(item => item.trim()).filter(Boolean),
-        user: employee?.name || task?.user || "Demo user " + form.employee
+        user: assignee.name
       })).unwrap();
       navigate("/task/" + result.id);
     } catch (err) {
@@ -66,20 +50,16 @@ export function TaskForm({
       setSaving(false);
     }
   }
-  const options = auth.isLoggedin ? employees.filter(employee => auth.fullAccess || String(employee.id || employee._id) === auth.id || (employee.ancestorManagers || []).includes(auth.id)) : [1, 2, 3].map(id => ({
-    id: String(id),
-    name: "Demo user " + id
-  }));
   return <form className="mb-5 rounded-xl border border-slate-200 bg-surface p-6 grid gap-5" onSubmit={submit}>
     {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Title<Input name="title" required maxLength={300} value={form.title} onChange={change} /></label>
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Priority<Select aria-label="Priority" name="priority" value={form.priority} onChange={change}>{["Low", "Medium", "High", "Urgent"].map(value => <option key={value}>{value}</option>)}</Select></label>
       <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Status<Select aria-label="Status" name="status" value={form.status} onChange={change}>{["Pending", "In progress", "Done", "Backlog", "Cancelled"].map(value => <option key={value}>{value}</option>)}</Select></label>
-      <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Assignee<Select aria-label="Assignee" name="employee" value={form.employee} onChange={change}>
-        {!options.some(item => String(item.id || item._id) === form.employee) && <option value={form.employee}>{task?.user || auth.username}</option>}
-        {options.map(item => <option value={item.id || item._id} key={item.id || item._id}>{item.name}</option>)}
-      </Select></label>
+      <AssigneeSelect selected={assignee} authenticated={auth.isLoggedin} onChange={employee => {
+        setAssignee(employee);
+        setForm(current => ({ ...current, employee: employee.id }));
+      }} />
       <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Due date<Input type="date" name="dueDate" value={form.dueDate} onChange={change} /></label>
     </div>
     <MarkdownEditor value={form.description} onChange={change} />

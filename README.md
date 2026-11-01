@@ -64,7 +64,7 @@ Configure `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and 
 
 `Todo` represents a Task Force task: tenant, creator, assignee, title, description, due date, priority, status, labels, embedded comments, attachment links, and subtasks. Supported statuses are Pending, In progress, Done, Backlog, and Cancelled; priorities are Low, Medium, High, and Urgent.
 
-All task queries are scoped to the signed-in tenant. Administrators can access organization tasks; other employees can access tasks assigned to themselves or their reports, and tasks they created. Assignments must target an active employee in that tenant and within the actor's reporting hierarchy unless the actor is an administrator. Resource permissions independently control each action.
+All task queries are scoped to the signed-in tenant. Administrators can access organization tasks; other employees can access tasks assigned to themselves or their reports, and tasks they created. Assignments can target any active employee in that tenant. Create and edit forms search the organization directory by name, email, or username. Resource permissions independently control each action.
 
 Saved views belong to a tenant and employee. MongoDB sessions are stored separately from device-session metadata; passwords and OTPs are hashed. There is no PostgreSQL dependency. Existing PostgreSQL records are not automatically migrated.
 

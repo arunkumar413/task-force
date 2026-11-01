@@ -120,7 +120,7 @@ test("invitation, acceptance, department assignment, and live permission revocat
   // Managers see their reports; the invited employee cannot see unrelated employees' tasks.
   const privateTask = await admin.post("/api/tasks").send({ title: "Admin task" }).expect(201);
   await member.get("/api/tasks/" + privateTask.body.data.id).expect(404);
-  await member.post("/api/tasks").send({ title: "Invalid assignment", employee: adminUser.id }).expect(403);
+  await member.post("/api/tasks").send({ title: "Organization assignment", employee: adminUser.id }).expect(201);
   const roles = await admin.get("/api/access").expect(200);
   const employeeRole = roles.body.data.roles.find(role => role.name === "Employee");
   await admin.patch("/api/access/roles/" + employeeRole.id).send({ resourceKey: "task", actions: ["read"] }).expect(200);
@@ -219,4 +219,33 @@ test("demo employees can add task links, and the old permission grant can be rep
   const hr = request.agent(app);
   await hr.post("/api/login").send({ email: "sam.okonkwo@acme.example", password: "demo123" }).expect(200);
   await hr.patch("/api/tasks/" + task.id).send({ attachments }).expect(403);
+});
+
+test("assignee search and assignment stay within the active organization directory", async () => {
+  await request(app).get("/api/tasks/assignees").expect(401);
+  const member = request.agent(app);
+  await member.post("/api/login").send({ email: "liam.ortiz@acme.example", password: "demo123" }).expect(200);
+  const result = await member.get("/api/tasks/assignees?q=noah").expect(200);
+  assert.equal(result.body.data.length, 1);
+  const noah = result.body.data[0];
+  assert.equal(noah.email, "noah.kim@acme.example");
+  assert.equal(noah.password, undefined);
+  assert.equal(noah.roleIds, undefined);
+  for (const query of ["NOAH", noah.email, noah.username]) {
+    const found = await member.get("/api/tasks/assignees").query({ q: query }).expect(200);
+    assert.ok(found.body.data.some(employee => employee.id === noah.id));
+  }
+  for (const query of [".*", "teammate@example.com"]) {
+    const found = await member.get("/api/tasks/assignees").query({ q: query }).expect(200);
+    assert.equal(found.body.data.length, 0);
+  }
+  const created = await member.post("/api/tasks").send({ title: "Directory assignment", employee: noah.id }).expect(201);
+  const sofia = (await member.get("/api/tasks/assignees?q=sofia").expect(200)).body.data[0];
+  await member.patch("/api/tasks/" + created.body.data.id).send({ employee: sofia.id }).expect(200);
+  const Employee = require("../models/Employee");
+  await Employee.updateOne({ _id: noah.id }, { isActive: false });
+  const inactive = await member.get("/api/tasks/assignees?q=noah").expect(200);
+  assert.equal(inactive.body.data.length, 0);
+  await member.patch("/api/tasks/" + created.body.data.id).send({ employee: noah.id }).expect(400);
+  await Employee.updateOne({ _id: noah.id }, { isActive: true });
 });

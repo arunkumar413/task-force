@@ -1,6 +1,20 @@
 const Employee = require("../models/Employee");
 const Department = require("../models/Department");
 
+module.exports.getTaskAssignees = async function (req, res, next) {
+  try {
+    const query = String(req.query.q || "").trim().slice(0, 100);
+    const filter = { tenantId: req.session.user.tenantId, isActive: true };
+    if (query) {
+      const pattern = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      filter.$or = [{ name: pattern }, { email: pattern }, { username: pattern }];
+    }
+    const employees = await Employee.find(filter)
+      .select("name username email").sort({ name: 1, _id: 1 }).limit(30);
+    res.json({ data: employees });
+  } catch (err) { next(err); }
+};
+
 function idString(value) {
   if (!value) {
     return null;

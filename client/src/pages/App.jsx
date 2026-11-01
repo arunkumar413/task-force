@@ -99,9 +99,9 @@ export default function App() {
             <tr>
               <th id={groupId} scope="rowgroup" colSpan={5}
               className={"bg-slate-50 px-4 pb-2.5 text-left align-middle " + (groupIndex > 0 ? "pt-8" : "pt-5")}>
-              <h2 className="flex items-baseline gap-2.5 text-xl font-semibold tracking-tight text-primary">
+              <h5 className="flex items-baseline gap-2.5 font-semibold tracking-tight text-primary">
                 {label} <span className="text-sm font-normal tracking-normal text-slate-500">({tasks.length})</span>
-              </h2>
+              </h5>
             </th>
             </tr>
             {tasks.map((task, taskIndex) => {

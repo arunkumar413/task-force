@@ -27,9 +27,6 @@ async function editableFields(body, user) {
     if (!validId(values.employee)) throw httpError(400, "Invalid assignee");
     const assignee = await Employee.findOne({ _id: values.employee, tenantId: user.tenantId, isActive: true });
     if (!assignee) throw httpError(400, "Assignee must be an active employee in your organization");
-    if (!user.fullAccess && String(assignee._id) !== user.id && !(assignee.ancestorManagers || []).some(id => String(id) === user.id)) {
-      throw httpError(403, "You can assign tasks to yourself or your reports");
-    }
   }
   return values;
 }

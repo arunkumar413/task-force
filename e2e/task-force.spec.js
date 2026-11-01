@@ -249,3 +249,35 @@ test("grouped tasks share aligned columns and one sticky header", async ({ page 
   expect(Math.abs(mobileHeader.x - mobileCell.x)).toBeLessThan(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test("create and edit tasks with searchable organization assignees", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("liam.ortiz@acme.example");
+  await page.getByLabel("Password", { exact: true }).fill("demo123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
+  await page.goto("/add-new-task");
+  await page.getByLabel("Title", { exact: true }).fill("Searchable assignee task");
+  const assignee = page.getByRole("combobox", { name: "Assignee", exact: true });
+  await assignee.fill("noah");
+  await page.getByRole("option", { name: /Noah Kim/ }).click();
+  await expect(assignee).toHaveValue("Noah Kim");
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Searchable assignee task", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Edit task", exact: true }).click();
+  await expect(assignee).toHaveValue("Noah Kim");
+  await assignee.fill("sofia.berg@");
+  await expect(page.getByRole("option", { name: /Sofia Berg/ })).toBeVisible();
+  await assignee.press("ArrowDown");
+  await assignee.press("Enter");
+  await expect(assignee).toHaveValue("Sofia Berg");
+  await assignee.fill("no employee matches this");
+  await expect(page.getByRole("status")).toHaveText("No matching employees");
+  await assignee.press("Escape");
+  await expect(assignee).toHaveValue("Sofia Berg");
+  await page.getByRole("button", { name: "Update task", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Searchable assignee task", exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("link", { name: "Edit task", exact: true }).click();
+  await expect(assignee).toHaveValue("Sofia Berg");
+});

@@ -5,6 +5,9 @@ const tasks = require("../controllers/tasksController");
 const router = express.Router();
 router.use(checkAuthentication);
 const allow = action => checkAuthorization({ resource: "task", action });
+router.get("/tasks/assignees",
+  checkAuthorization({ permissions: ["task.write", "task.update"] }),
+  require("../controllers/userController").getTaskAssignees);
 router.get("/tasks", allow("read"), tasks.listTasks);
 router.post("/tasks", allow("write"), tasks.createTask);
 router.get("/tasks/:taskId", allow("read"), tasks.getTask);
