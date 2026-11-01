@@ -50,7 +50,13 @@ export function TaskPage() {
     {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {deleting && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><p>Delete this task and its comments?</p><div className="flex flex-wrap items-center gap-3"><Button disabled={busy} onClick={() => run(deleteTask(task.id), () => navigate("/"))}>Delete task</Button><Button onClick={() => setDeleting(false)}>Keep task</Button></div></div>}
     <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6">
-      <dl className="mb-5 grid grid-cols-2 gap-4 border-b border-slate-200 pb-5 sm:grid-cols-4 [&_dt]:text-xs [&_dt]:text-slate-500 [&_dd]:mt-1"><div><dt>Priority</dt><dd>{task.priority}</dd></div><div><dt>Status</dt><dd>{task.status}</dd></div><div><dt>Assignee</dt><dd>{task.user || "—"}</dd></div><div><dt>Due date</dt><dd>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</dd></div></dl>
+      <dl className="mb-5 grid grid-cols-2 gap-4 border-b border-slate-200 pb-5 sm:grid-cols-[repeat(4,max-content)] sm:justify-between [&_dt]:text-xs [&_dt]:text-slate-500 [&_dd]:mt-1"><div><dt>Priority</dt>
+      <dd className="font-bold">{task.priority}</dd></div><div>
+        <dt>Status</dt><dd className="font-bold">{task.status}</dd>
+        </div><div><dt>Assignee</dt>
+        <dd className="font-bold">{task.user || "—"}</dd>
+        </div><div><dt>Due date</dt>
+        <dd className="font-bold">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</dd></div></dl>
       <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
       <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
