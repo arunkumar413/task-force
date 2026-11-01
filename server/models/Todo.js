@@ -17,7 +17,9 @@ const todoSchema = new Schema({
   status: { type: String, enum: ["Pending", "In progress", "Done", "Backlog", "Cancelled"], default: "Backlog" },
   priority: { type: String, enum: ["Low", "Medium", "High", "Urgent"], default: "Medium" },
   dueDate: { type: Date, default: null },
-  labels: [{ type: String, trim: true, maxlength: 100 }],
+  labels: [{ type: String, trim: true, maxlength: 1000 }],
+  departmentId: { type: Schema.Types.ObjectId, ref: "Department", default: null },
+  departmentLabel: { type: String, default: "", maxlength: 1000 },
   tenantId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
   employee: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
   createdBy: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
@@ -31,4 +33,5 @@ const todoSchema = new Schema({
   return ret;
 } } });
 todoSchema.index({ tenantId: 1, employee: 1, dueDate: 1 });
+todoSchema.index({ tenantId: 1, departmentId: 1 });
 module.exports = mongoose.model("Todo", todoSchema);

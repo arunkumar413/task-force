@@ -1,10 +1,12 @@
 import { Input, Select, Button } from "./FormControls";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { API_URL } from "../constants";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { saveTask } from "../store/tasksFilterSlice";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { LabelsInput } from "./LabelsInput";
 export function TaskForm({
   task
 }) {
@@ -16,13 +18,31 @@ export function TaskForm({
     status: task?.status || "Backlog",
     dueDate: task?.dueDate?.slice(0, 10) || "",
     employee: task?.employee || auth.id || "1",
-    labels: task?.labels?.join(", ") || ""
+    labels: [...new Set([...(task?.labels || []), ...(task?.departmentLabel ? [task.departmentLabel] : [])])]
   }));
   const [assignee, setAssignee] = useState(() => ({ id: String(task?.employee || auth.id || "1"), name: task?.user || auth.name || auth.username || "Demo user 1" }));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [departments, setDepartments] = useState([]);
+  const [lockedLabel, setLockedLabel] = useState(task?.departmentLabel || "");
+  const [loadingDepartments, setLoadingDepartments] = useState(auth.isLoggedin);
+  useEffect(() => {
+    if (!auth.isLoggedin) return;
+    const controller = new AbortController();
+    fetch(API_URL + "/tasks/departments", { credentials: "include", signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error("Unable to load departments");
+      const { data: options, defaultLabel } = await response.json();
+      setDepartments(options);
+      if (!task && defaultLabel) {
+        setLockedLabel(defaultLabel);
+        setForm(current => ({ ...current, labels: [...new Set([defaultLabel, ...current.labels])] }));
+      }
+    }).catch(err => { if (err.name !== "AbortError") setError(err.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoadingDepartments(false); });
+    return () => controller.abort();
+  }, [auth.isLoggedin]);
   function change(event) {
     setForm({
       ...form,
@@ -40,7 +60,7 @@ export function TaskForm({
           id: task.id
         } : {}),
         dueDate: form.dueDate || null,
-        labels: form.labels.split(",").map(item => item.trim()).filter(Boolean),
+        labels: form.labels,
         user: assignee.name
       })).unwrap();
       navigate("/task/" + result.id);
@@ -63,7 +83,7 @@ export function TaskForm({
       <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Due date<Input type="date" name="dueDate" value={form.dueDate} onChange={change} /></label>
     </div>
     <MarkdownEditor value={form.description} onChange={change} />
-    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Labels (comma separated)<Input name="labels" value={form.labels} onChange={change} placeholder="Frontend, Testing" /></label>
-    <div className="flex flex-wrap items-center gap-3"><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={saving}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</Button><Button type="button" onClick={() => navigate(-1)}>Cancel</Button></div>
+    <LabelsInput value={form.labels} lockedLabel={lockedLabel} onChange={labels => setForm(current => ({ ...current, labels }))} suggestions={departments.map(item => item.path)} disabled={loadingDepartments} />
+    <div className="flex flex-wrap items-center gap-3"><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={saving || loadingDepartments}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</Button><Button type="button" onClick={() => navigate(-1)}>Cancel</Button></div>
   </form>;
 }

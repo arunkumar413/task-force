@@ -316,3 +316,46 @@ test("current-password guesses on email changes are limited per employee", async
   assert.equal(me.body.data.email, "replacement@example.com");
   await AuthRateLimit.deleteMany({});
 });
+
+test("tasks default to the creator department hierarchy and validate selected organization departments", async () => {
+  await outsider.post("/api/login").send({ email: "beta@example.com", password }).expect(200);
+  const Department = require("../models/Department");
+  const child = await Department.create({ tenantId: outsiderUser.tenantId, name: "Analytics", parentId: outsiderUser.departmentId });
+  const directory = await outsider.get("/api/tasks/departments").expect(200);
+  assert.equal(directory.body.data.find(item => item.id === String(child._id)).path, "/leadership/analytics");
+  assert.ok(!directory.body.data.some(item => item.id === adminUser.departmentId));
+  const created = await outsider.post("/api/tasks").send({ title: "Department default" }).expect(201);
+  assert.equal(created.body.data.departmentId, outsiderUser.departmentId);
+  assert.deepEqual(created.body.data.labels, ["/leadership"]);
+  const updated = await outsider.patch("/api/tasks/" + created.body.data.id).send({ labels: ["Customer, Reporting", "/leadership/analytics", "Customer, Reporting"] }).expect(200);
+  assert.deepEqual(updated.body.data.labels, ["Customer, Reporting", "/leadership/analytics", "/leadership"]);
+  assert.equal(updated.body.data.departmentId, outsiderUser.departmentId);
+  const preserved = await outsider.patch("/api/tasks/" + created.body.data.id).send({ title: "Preserve labels" }).expect(200);
+  assert.deepEqual(preserved.body.data.labels, updated.body.data.labels);
+  const cleared = await outsider.patch("/api/tasks/" + created.body.data.id).send({ labels: [], departmentId: null, departmentLabel: "" }).expect(200);
+  assert.deepEqual(cleared.body.data.labels, ["/leadership"]);
+  assert.equal(cleared.body.data.departmentId, outsiderUser.departmentId);
+  assert.equal(cleared.body.data.departmentLabel, "/leadership");
+  const explicitEmpty = await outsider.post("/api/tasks").send({ title: "Cannot omit default", labels: [] }).expect(201);
+  assert.deepEqual(explicitEmpty.body.data.labels, ["/leadership"]);
+});
+
+test("default label follows the logged-in employee's current database department", async () => {
+  const member = request.agent(app);
+  await member.post("/api/login").send({ email: "beta@example.com", password }).expect(200);
+  const Employee = require("../models/Employee");
+  const Department = require("../models/Department");
+  const current = await Department.findOne({ tenantId: outsiderUser.tenantId, name: "Analytics" });
+  await Employee.updateOne({ _id: outsiderUser.id }, { departmentId: current._id });
+  try {
+    const options = await member.get("/api/tasks/departments").expect(200);
+    assert.equal(options.body.defaultLabel, "/leadership/analytics");
+    const created = await member.post("/api/tasks").send({ title: "Current department default" }).expect(201);
+    assert.deepEqual(created.body.data.labels, ["/leadership/analytics"]);
+    await Employee.updateOne({ _id: outsiderUser.id }, { departmentId: null });
+    const unassigned = await member.get("/api/tasks/departments").expect(200);
+    assert.equal(unassigned.body.defaultLabel, null);
+  } finally {
+    await Employee.updateOne({ _id: outsiderUser.id }, { departmentId: outsiderUser.departmentId });
+  }
+});

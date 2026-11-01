@@ -290,11 +290,15 @@ async function seed() {
 
   // The original numeric creator IDs map to these demo employees.
   const creators = { 1: ava, 2: marcus, 3: liam };
+  const departmentPaths = new Map((await require("../utils/taskDepartments").departmentOptions(tenantId)).map(item => [item.id, item.path]));
   await Todo.insertMany(fakeTaskData.map(task => ({
     title: task.title, description: task.description, priority: task.priority,
     status: task.status, dueDate: task.due_date, tenantId,
     createdBy: creators[task.created_by]._id,
     employee: creators[task.created_by]._id,
+    departmentId: creators[task.created_by].departmentId,
+    departmentLabel: departmentPaths.get(String(creators[task.created_by].departmentId)),
+    labels: [departmentPaths.get(String(creators[task.created_by].departmentId))],
   })));
   console.log("Demo organization and Task Force tasks seeded.");
   console.log("");

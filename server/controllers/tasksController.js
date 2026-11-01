@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
 const Employee = require("../models/Employee");
 const TaskView = require("../models/TaskView");
+const { departmentOptions, fieldsForLabels, withDepartmentLabel } = require("../utils/taskDepartments");
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
 const validId = id => typeof id === "string" && mongoose.isObjectIdOrHexString(id);
@@ -56,13 +57,16 @@ exports.getTask = handle(async (req, res) => {
 exports.createTask = handle(async (req, res) => {
   const user = req.session.user;
   const fields = await editableFields(req.body, user);
+  Object.assign(fields, await fieldsForLabels(user.tenantId, fields.labels, user.departmentId));
   const task = await Todo.create({ ...fields, employee: fields.employee || user.id, tenantId: user.tenantId, createdBy: user.id });
   await task.populate("employee", "name");
   res.status(201).json({ data: serialize(task) });
 });
 exports.updateTask = handle(async (req, res) => {
   const task = await findTask(req);
-  task.set(await editableFields(req.body, req.session.user));
+  const fields = await editableFields(req.body, req.session.user);
+  if (Object.hasOwn(fields, "labels")) fields.labels = withDepartmentLabel(fields.labels, task.departmentLabel);
+  task.set(fields);
   await task.save();
   await task.populate("employee", "name");
   res.json({ data: serialize(task) });
@@ -95,3 +99,9 @@ exports.createView = handle(async (req, res) => {
 });
 exports.taskScope = taskScope;
 exports.editableFields = editableFields;
+exports.listTaskDepartments = handle(async (req, res) => {
+  const departments = await departmentOptions(req.session.user.tenantId);
+  // Authentication refreshes this department from the employee record on every request.
+  const currentDepartment = departments.find(item => item.id === req.session.user.departmentId);
+  res.json({ data: departments, defaultLabel: currentDepartment?.path || null });
+});
