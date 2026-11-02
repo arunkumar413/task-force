@@ -1,6 +1,8 @@
 import { Button, markdownClasses, Input } from "../components/FormControls";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 import { CommentAttachments } from "../components/CommentAttachments";
+import { AttachmentPicker } from "../components/AttachmentPicker";
+import { SectionTabs } from "../components/SectionTabs";
 import React, { useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -63,6 +65,7 @@ export function TaskPage() {
       <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
       <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
+    <SectionTabs tabs={[{ id: "subtasks", label: `Subtasks (${task.subtasks.length})` }, { id: "comments", label: `Comments (${task.comments.length})` }, { id: "attachments", label: `Attachments (${task.attachments.length})` }]}>
     <details open className="group/subtasks mb-5 rounded-xl border border-slate-200 bg-surface">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-6 text-slate-900 [&::-webkit-details-marker]:hidden">
         <h2 className="text-lg font-semibold tracking-tight">Subtasks ({task.subtasks.length})</h2>
@@ -111,34 +114,6 @@ export function TaskPage() {
       </form>
       </div>
     </details>
-    <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Attachments</h2>
-      {task.attachments.map((item, index) => <div key={item._id || index} className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3"><a href={item.link} target="_blank" rel="noreferrer">{item.file_name}</a><Button disabled={busy} onClick={() => update({
-          attachments: task.attachments.filter((_, i) => i !== index)
-        })}>Remove</Button></div>)}
-      <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
-        event.preventDefault();
-        if (!/^https?:\/\//i.test(attachment.link)) {
-          setError("Use an http or https attachment URL");
-          return;
-        }
-        run(saveTask({
-          id: task.id,
-          attachments: [...task.attachments, attachment]
-        }), () => setAttachment({
-          file_name: "",
-          link: ""
-        }));
-      }}>
-        <Input aria-label="Attachment name" placeholder="Attachment name" value={attachment.file_name} onChange={e => setAttachment({
-          ...attachment,
-          file_name: e.target.value
-        })} required />
-        <Input aria-label="Attachment URL" placeholder="https://…" type="url" value={attachment.link} onChange={e => setAttachment({
-          ...attachment,
-          link: e.target.value
-        })} required /><Button disabled={busy}>Add link</Button>
-      </form>
-    </section>
     <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Comments ({task.comments.length})</h2>
       {task.comments.map((item, index) => <article className="mb-4 border-b border-slate-200 py-4" key={item.id || item._id || index}><p className="text-sm text-slate-500">{item.username || item.email} · {new Date(item.createdAt).toLocaleString()}</p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
         <CommentAttachments files={item.attachments} />
@@ -151,23 +126,24 @@ export function TaskPage() {
         }), () => { setComment(""); setCommentFiles([]); });
       }}>
         <MarkdownEditor label="Add a comment" name="comment" rows={4} maxLength={20000} value={comment} onChange={e => setComment(e.target.value)} disabled={busy} placeholder="Write a comment using Markdown…" previewTestId="comment-preview" />
-        {signedIn ? <div className="space-y-2">
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Attach files<Input type="file" multiple disabled={busy} onChange={event => {
-            const selected = [...event.target.files];
-            event.target.value = "";
-            if (commentFiles.length + selected.length > 5 || selected.some(file => file.size > 10 * 1024 * 1024)) {
-              setError("Attach up to 5 files, each 10 MB or smaller."); return;
-            }
-            setError(""); setCommentFiles(current => [...current, ...selected]);
-          }} /></label>
-          <p className="text-xs text-slate-500">Up to 5 files, 10 MB each. Files upload when you post the comment.</p>
-          <ul className="space-y-2">{commentFiles.map((file, index) => <li key={index} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <span className="min-w-0 break-all">{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
-            <Button type="button" disabled={busy} aria-label={"Remove file " + file.name} onClick={() => setCommentFiles(current => current.filter((_, i) => i !== index))}>Remove</Button>
-          </li>)}</ul>
-        </div> : <p className="text-xs text-slate-500">Sign in to attach files to comments.</p>}
+        {signedIn ? <AttachmentPicker files={commentFiles} onChange={setCommentFiles} onError={setError} disabled={busy} /> : <p className="text-xs text-slate-500">Sign in to attach files to comments.</p>}
         <Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || !comment.trim()}>Add comment</Button>
       </form>
     </section>
+    <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Attachments</h2>
+      <CommentAttachments files={task.attachments} viewerLabel="Task images" disabled={busy} onRemove={index => update({ attachments: task.attachments.filter((_, i) => i !== index) })} />
+      {/* <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+        event.preventDefault();
+        if (!/^https?:\/\//i.test(attachment.link)) {
+          setError("Use an http or https attachment URL");
+          return;
+        }
+        run(saveTask({ id: task.id, attachments: [...task.attachments, attachment] }), () => setAttachment({ file_name: "", link: "" }));
+      }}>
+        <Input aria-label="Attachment name" placeholder="Attachment name" value={attachment.file_name} onChange={e => setAttachment({ ...attachment, file_name: e.target.value })} required />
+        <Input aria-label="Attachment URL" placeholder="https://…" type="url" value={attachment.link} onChange={e => setAttachment({ ...attachment, link: e.target.value })} required /><Button disabled={busy}>Add link</Button>
+      </form> */}
+    </section>
+    </SectionTabs>
   </>;
 }

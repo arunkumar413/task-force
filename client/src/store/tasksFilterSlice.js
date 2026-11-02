@@ -25,15 +25,22 @@ export const loadTasks = createAsyncThunk("tasks/load", async (_, { getState }) 
   return { items, views, owner };
 });
 export const saveTask = createAsyncThunk("tasks/save", async (task, { getState, dispatch }) => {
+  const { files = [], ...fields } = task;
   if (getState().auth.isLoggedin) {
+    let body = JSON.stringify(fields);
+    if (files.length) {
+      body = new FormData();
+      body.append("task", JSON.stringify(fields));
+      files.forEach(file => body.append("files", file));
+    }
     const result = await request(task.id ? "/tasks/" + task.id : "/tasks", {
-      method: task.id ? "PATCH" : "POST", body: JSON.stringify(task),
+      method: task.id ? "PATCH" : "POST", body,
     });
     dispatch(upsertTask(result));
     return result;
   }
   const current = getState().tasks.items.find(item => item.id === task.id) || {};
-  const merged = { ...current, ...task };
+  const merged = { ...current, ...fields };
   const result = { ...merged, id: merged.id || crypto.randomUUID(), user: merged.user || "Demo user",
     comments: merged.comments || [], subtasks: merged.subtasks || [], attachments: merged.attachments || [] };
   dispatch(upsertTask(result));

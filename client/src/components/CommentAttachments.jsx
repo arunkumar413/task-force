@@ -4,7 +4,7 @@ import { API_URL } from "../constants";
 
 const imageType = file => ({ png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", avif: "image/avif", bmp: "image/bmp", svg: "image/svg+xml" })[file.file_name?.split(".").pop().toLowerCase()];
 
-function ImageCarousel({ images, onClose }) {
+function ImageCarousel({ images, onClose, label }) {
   const dialog = useRef(null);
   const [index, setIndex] = useState(0);
   const [source, setSource] = useState("");
@@ -39,7 +39,7 @@ function ImageCarousel({ images, onClose }) {
     return () => { controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [image]);
   function move(offset) { setIndex(current => (current + offset + images.length) % images.length); }
-  return <dialog ref={dialog} aria-label="Comment images" className="fixed inset-0 m-auto max-h-[90dvh] w-[min(95vw,64rem)] max-w-none overflow-y-auto rounded-xl border border-slate-200 bg-surface p-4 text-slate-900 shadow-xl backdrop:bg-black/70 sm:p-6"
+  return <dialog ref={dialog} aria-label={label} className="fixed inset-0 m-auto max-h-[90dvh] w-[min(95vw,64rem)] max-w-none overflow-y-auto rounded-xl border border-slate-200 bg-surface p-4 text-slate-900 shadow-xl backdrop:bg-black/70 sm:p-6"
     onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }}
     onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); move(event.key === "ArrowLeft" ? -1 : 1); } }}>
     <div className="mb-4 flex items-center justify-between gap-4">
@@ -58,12 +58,15 @@ function ImageCarousel({ images, onClose }) {
   </dialog>;
 }
 
-export function CommentAttachments({ files = [] }) {
+export function CommentAttachments({ files = [], onRemove, disabled = false, viewerLabel = "Comment images" }) {
   const [open, setOpen] = useState(false);
   const images = files.filter(file => imageType(file));
   return <div className="space-y-2">
-    {files.map((file, index) => <a className="mt-2 block break-all text-sm text-primary underline" key={file._id || index} href={file.link} rel="noreferrer" target="_blank">{file.file_name}{file.size != null ? ` (${(file.size / 1024).toFixed(1)} KB)` : ""}</a>)}
+    {files.map((file, index) => <div key={file._id || index} className="mt-2 flex items-center justify-between gap-3">
+      <a className="min-w-0 break-all text-sm text-primary underline" href={file.link} rel="noreferrer" target="_blank">{file.file_name}{file.size != null ? ` (${(file.size / 1024).toFixed(1)} KB)` : ""}</a>
+      {onRemove && <Button type="button" aria-label={"Remove attachment " + file.file_name} disabled={disabled} onClick={() => onRemove(index)}>Remove</Button>}
+    </div>)}
     {images.length > 0 && <Button type="button" onClick={() => setOpen(true)}>View images ({images.length})</Button>}
-    {open && <ImageCarousel images={images} onClose={() => setOpen(false)} />}
+    {open && <ImageCarousel images={images} label={viewerLabel} onClose={() => setOpen(false)} />}
   </div>;
 }

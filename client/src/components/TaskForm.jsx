@@ -7,6 +7,7 @@ import { saveTask } from "../store/tasksFilterSlice";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { LabelsInput } from "./LabelsInput";
+import { AttachmentPicker } from "./AttachmentPicker";
 export function TaskForm({
   task
 }) {
@@ -23,6 +24,7 @@ export function TaskForm({
   const [assignee, setAssignee] = useState(() => ({ id: String(task?.employee || auth.id || "1"), name: task?.user || auth.name || auth.username || "Demo user 1" }));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [files, setFiles] = useState([]);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
@@ -56,6 +58,7 @@ export function TaskForm({
     try {
       const result = await dispatch(saveTask({
         ...form,
+        files,
         ...(task?.id ? {
           id: task.id
         } : {}),
@@ -84,6 +87,7 @@ export function TaskForm({
     </div>
     <MarkdownEditor value={form.description} onChange={change} />
     <LabelsInput value={form.labels} lockedLabel={lockedLabel} onChange={labels => setForm(current => ({ ...current, labels }))} suggestions={departments.map(item => item.path)} disabled={loadingDepartments} />
+    {!task && (auth.isLoggedin ? <AttachmentPicker files={files} onChange={setFiles} onError={setError} disabled={saving} label="Task attachments" /> : <p className="text-xs text-slate-500">Sign in to upload task attachments.</p>)}
     <div className="flex flex-wrap items-center gap-3"><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={saving || loadingDepartments}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</Button><Button type="button" onClick={() => navigate(-1)}>Cancel</Button></div>
   </form>;
 }

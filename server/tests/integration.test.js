@@ -423,3 +423,51 @@ test("comment uploads persist multiple files, enforce access and limits, and cle
     assert.equal(forged.body.data.comments[1].attachments[0].storage_key, undefined);
   } finally { Object.assign(storage, original); }
 });
+
+test("new tasks upload multiple attachments, protect downloads, and clean up failed creation", async () => {
+  const storage = require("../utils/objectStorage");
+  const { Readable } = require("node:stream");
+  const original = { upload: storage.upload, remove: storage.remove, download: storage.download };
+  const objects = new Map();
+  storage.upload = async (key, file) => {
+    if (file.originalname === "fail.txt") throw new Error("Simulated storage failure");
+    objects.set(key, Buffer.from(file.buffer));
+    return { storage_key: key, storage_bucket: "test-task-files" };
+  };
+  storage.remove = async file => { objects.delete(file.storage_key); };
+  storage.download = async file => ({ Body: Readable.from(objects.get(file.storage_key)) });
+  try {
+    const owner = request.agent(app);
+    const identity = await register(owner, "task-upload");
+    await request(app).post("/api/tasks").field("task", JSON.stringify({ title: "Denied" })).attach("files", Buffer.from("x"), "denied.txt").expect(401);
+    await owner.post("/api/tasks").field("task", "invalid json").attach("files", Buffer.from("x"), "invalid.txt").expect(400);
+    await owner.post("/api/tasks").field("task", JSON.stringify({ title: "" })).attach("files", Buffer.from("x"), "invalid.txt").expect(400);
+    assert.equal(objects.size, 0);
+    const created = await owner.post("/api/tasks").field("task", JSON.stringify({ title: "Uploaded task", tenantId: outsiderUser.tenantId, labels: ["Release"] }))
+      .attach("files", Buffer.from("one"), "one.png").attach("files", Buffer.from("two"), "two.txt").expect(201);
+    const task = created.body.data;
+    assert.equal(task.tenantId, identity.tenantId);
+    assert.equal(task.attachments.length, 2);
+    assert.ok(task.labels.includes("/leadership"));
+    const path = new URL(task.attachments[0].link).pathname;
+    await request(app).get(path).expect(401);
+    await outsider.get(path).expect(404);
+    const download = await owner.get(path).expect(200);
+    assert.equal(download.body.toString(), "one");
+    const preserved = await owner.patch("/api/tasks/" + task.id).send({ attachments: task.attachments.map(file => ({ ...file, storage_key: "forged" })) }).expect(200);
+    assert.equal(preserved.body.data.attachments[0].storage_key, task.attachments[0].storage_key);
+    const forged = await owner.patch("/api/tasks/" + task.id).send({ attachments: [...task.attachments, { file_name: "fake.txt", link: "https://example.com/fake", storage_key: "fake", storage_bucket: "test-task-files" }] }).expect(200);
+    assert.equal(forged.body.data.attachments[2].storage_key, undefined);
+    await owner.post("/api/tasks").field("task", JSON.stringify({ title: "Failed upload" }))
+      .attach("files", Buffer.from("cleanup"), "cleanup.txt").attach("files", Buffer.from("fail"), "fail.txt").expect(502);
+    assert.equal(objects.size, 2);
+    const Todo = require("../models/Todo");
+    assert.equal(await Todo.countDocuments({ tenantId: identity.tenantId }), 1);
+    const originalSave = Todo.prototype.save;
+    try {
+      Todo.prototype.save = async () => { throw new Error("Simulated database failure"); };
+      await owner.post("/api/tasks").field("task", JSON.stringify({ title: "Failed database" })).attach("files", Buffer.from("cleanup"), "cleanup.txt").expect(500);
+    } finally { Todo.prototype.save = originalSave; }
+    assert.equal(objects.size, 2);
+  } finally { Object.assign(storage, original); }
+});

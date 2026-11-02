@@ -35,11 +35,13 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeHidden();
   await page.locator("summary").filter({ hasText: "Subtasks" }).press("Space");
   await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeChecked();
+  await page.getByRole("tab", { name: /^Comments/ }).click();
   await page.getByLabel("Add a comment").fill("Browser comment");
   await page.getByRole("button", { name: "Add comment" }).click();
   await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeChecked();
+  await page.getByRole("tab", { name: /^Comments/ }).click();
   await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Edit task", exact: true }).click();
   await page.getByRole("tab", { name: "Preview", exact: true }).click();
@@ -343,6 +345,7 @@ test("comments preview Markdown, post from preview, and retain formatting after 
   await page.getByRole("button", { name: "Create task", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Markdown comment task", exact: true })).toBeVisible();
   const draft = "**Comment emphasis**\n\n- First item\n- Second item\n\n[Reference](https://example.com)\n\n`const checked = true`\n\n<script>alert('unsafe')</script>";
+  await page.getByRole("tab", { name: /^Comments/ }).click();
   await page.getByLabel("Add a comment", { exact: true }).fill(draft);
   await page.getByRole("tab", { name: "Preview", exact: true }).click();
   const preview = page.getByTestId("comment-preview");
@@ -359,6 +362,7 @@ test("comments preview Markdown, post from preview, and retain formatting after 
   await expect(posted.getByRole("link", { name: "Reference" })).toHaveAttribute("href", "https://example.com");
   await expect(preview).toContainText("Nothing to preview yet.");
   await page.reload();
+  await page.getByRole("tab", { name: /^Comments/ }).click();
   await expect(posted.locator("strong")).toHaveText("Comment emphasis");
   await expect(posted.locator("li")).toHaveCount(2);
   await expect(posted.locator("script")).toHaveCount(0);
@@ -372,6 +376,7 @@ test("comment file selection uploads on submit and supports removal", async ({ p
   await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
   const tasks = await (await page.request.get("/api/mytasks")).json();
   await page.goto("/task/" + tasks.data[0].id);
+  await page.getByRole("tab", { name: /^Comments/ }).click();
   const files = page.getByLabel("Attach files", { exact: true });
   await files.setInputFiles([{ name: "one.txt", mimeType: "text/plain", buffer: Buffer.from("first") }, { name: "two.txt", mimeType: "text/plain", buffer: Buffer.from("second") }]);
   await page.getByRole("button", { name: "Remove file two.txt", exact: true }).click();
@@ -428,6 +433,7 @@ test("comment images open an accessible carousel with keyboard controls and erro
     return route.request().url().includes("missing") ? route.fulfill({ status: 403 }) : route.fulfill({ contentType: "application/octet-stream", headers: { "Content-Disposition": "attachment" }, body: png });
   });
   await page.goto("/task/" + task.id);
+  await page.getByRole("tab", { name: /^Comments/ }).click();
   const opener = page.getByRole("button", { name: "View images (3)", exact: true });
   await opener.click();
   const dialog = page.getByRole("dialog", { name: "Comment images" });
@@ -459,4 +465,47 @@ test("comment images open an accessible carousel with keyboard controls and erro
   await expect(dialog.getByRole("button", { name: "Next image", exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: "Close image viewer", exact: true }).click();
   await expect(dialog).toHaveCount(0);
+});
+
+test("task creation accepts files, task images use the carousel, and section tabs preserve drafts", async ({ page }) => {
+  await page.request.post("/api/register", { data: { username: "Task Attachments", email: "task-attachments@example.com", password: "browser-files-password", organizationName: "Task Attachments" } });
+  await page.goto("/add-new-task");
+  await page.getByLabel("Title", { exact: true }).fill("Task with image attachments");
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j4uoAAAAASUVORK5CYII=", "base64");
+  await page.getByLabel("Task attachments", { exact: true }).setInputFiles([{ name: "one.png", mimeType: "image/png", buffer: png }, { name: "two.png", mimeType: "image/png", buffer: png }]);
+  await page.route("**/api/tasks", async route => {
+    if (route.request().method() !== "POST") return route.continue();
+    const body = route.request().postDataBuffer().toString();
+    expect(route.request().headers()["content-type"]).toContain("multipart/form-data; boundary=");
+    expect(body).toContain('filename="one.png"');
+    expect(body).toContain('filename="two.png"');
+    const fields = JSON.parse(body.match(/name="task"\r\n\r\n([^\r\n]+)/)[1]);
+    const response = await page.request.post("/api/tasks", { data: { ...fields, attachments: [{ file_name: "one.png", link: "http://127.0.0.1:3040/task-preview-one.png" }, { file_name: "two.png", link: "http://127.0.0.1:3040/task-preview-two.png" }] } });
+    await route.fulfill({ status: response.status(), json: await response.json() });
+  });
+  await page.route("**/task-preview-*.png", route => route.fulfill({ contentType: "application/octet-stream", body: png }));
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Task with image attachments", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Attachments (2)", exact: true }).click();
+  await page.getByRole("button", { name: "View images (2)", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("img", { name: "one.png", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Next image", exact: true }).click();
+  await expect(dialog.getByRole("img", { name: "two.png", exact: true })).toBeVisible();
+  await dialog.press("Escape");
+  const subtasks = page.getByRole("tab", { name: /^Subtasks/ });
+  const comments = page.getByRole("tab", { name: /^Comments/ });
+  await subtasks.click();
+  await expect(subtasks).toHaveAttribute("aria-selected", "true");
+  await page.getByLabel("New subtask", { exact: true }).fill("Unfinished subtask");
+  await comments.click();
+  await page.getByLabel("Add a comment", { exact: true }).fill("Unfinished comment");
+  await comments.press("ArrowLeft");
+  await expect(page.getByLabel("New subtask", { exact: true })).toHaveValue("Unfinished subtask");
+  await expect(page.getByLabel("Add a comment", { exact: true })).toBeHidden();
+  await subtasks.press("ArrowRight");
+  await expect(page.getByLabel("Add a comment", { exact: true })).toHaveValue("Unfinished comment");
+  await page.reload();
+  await page.getByRole("tab", { name: "Attachments (2)", exact: true }).click();
+  await expect(page.getByRole("link", { name: "one.png", exact: true })).toBeVisible();
 });

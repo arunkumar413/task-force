@@ -11,6 +11,7 @@ router.get("/tasks/assignees",
   require("../controllers/userController").getTaskAssignees);
 router.get("/tasks", allow("read"), tasks.listTasks);
 router.post("/tasks", allow("write"), tasks.createTask);
+router.get("/tasks/:taskId/attachments/:attachmentId", allow("read"), tasks.downloadTaskAttachment);
 router.get("/tasks/:taskId", allow("read"), tasks.getTask);
 router.patch("/tasks/:taskId", allow("update"), tasks.updateTask);
 router.delete("/tasks/:taskId", allow("delete"), tasks.deleteTask);

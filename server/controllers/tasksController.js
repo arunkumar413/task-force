@@ -6,6 +6,7 @@ const { departmentOptions, fieldsForLabels, withDepartmentLabel } = require("../
 const objectStorage = require("../utils/objectStorage");
 const parseCommentFiles = require("../middlewares/commentFiles");
 const { pipeline } = require("node:stream/promises");
+const { uploadFiles, cleanupFiles } = require("../utils/taskFileUploads");
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
 const validId = id => typeof id === "string" && mongoose.isObjectIdOrHexString(id);
@@ -58,16 +59,40 @@ exports.getTask = handle(async (req, res) => {
   res.json({ data: serialize(task) });
 });
 exports.createTask = handle(async (req, res) => {
+  if (req.is("multipart/form-data")) {
+    await parseCommentFiles(req, res);
+    try { req.body = JSON.parse(req.body.task); }
+    catch (err) { throw httpError(400, "Invalid task data"); }
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) throw httpError(400, "Invalid task data");
+  }
   const user = req.session.user;
   const fields = await editableFields(req.body, user);
+  if (fields.attachments) {
+    if (!Array.isArray(fields.attachments) || fields.attachments.some(file => !file || typeof file !== "object")) throw httpError(400, "Invalid attachments");
+    fields.attachments = fields.attachments.map(file => ({ file_name: file.file_name, link: file.link }));
+  }
   Object.assign(fields, await fieldsForLabels(user.tenantId, fields.labels, user.departmentId));
-  const task = await Todo.create({ ...fields, employee: fields.employee || user.id, tenantId: user.tenantId, createdBy: user.id });
+  const task = new Todo({ ...fields, employee: fields.employee || user.id, tenantId: user.tenantId, createdBy: user.id });
+  await task.validate();
+  const uploaded = [];
+  try {
+    await uploadFiles(req, task.id, req.files || [], uploaded);
+    task.attachments.push(...uploaded);
+    await task.save();
+  } catch (err) { await cleanupFiles(req, uploaded); throw err; }
   await task.populate("employee", "name");
   res.status(201).json({ data: serialize(task) });
 });
 exports.updateTask = handle(async (req, res) => {
   const task = await findTask(req);
   const fields = await editableFields(req.body, req.session.user);
+  if (fields.attachments) {
+    if (!Array.isArray(fields.attachments) || fields.attachments.some(file => !file || typeof file !== "object")) throw httpError(400, "Invalid attachments");
+    fields.attachments = fields.attachments.map(file => {
+      const existing = task.attachments.find(item => String(item._id) === String(file._id));
+      return existing?.storage_key ? existing.toObject() : { file_name: file.file_name, link: file.link };
+    });
+  }
   if (Object.hasOwn(fields, "labels")) fields.labels = withDepartmentLabel(fields.labels, task.departmentLabel);
   task.set(fields);
   await task.save();
@@ -113,10 +138,10 @@ exports.addComment = handle(async (req, res) => {
   const updated = await Todo.findById(task._id).populate("employee", "name");
   res.status(201).json({ data: serialize(updated) });
 });
-exports.downloadCommentAttachment = handle(async (req, res) => {
+const downloadAttachment = handle(async (req, res) => {
   const task = await findTask(req);
-  if (!validId(req.params.commentId) || !validId(req.params.attachmentId)) throw httpError(400, "Invalid attachment ID");
-  const file = task.comments.id(req.params.commentId)?.attachments.id(req.params.attachmentId);
+  if (req.params.commentId && !validId(req.params.commentId) || !validId(req.params.attachmentId)) throw httpError(400, "Invalid attachment ID");
+  const file = req.params.commentId ? task.comments.id(req.params.commentId)?.attachments.id(req.params.attachmentId) : task.attachments.id(req.params.attachmentId);
   if (!file?.storage_key || !file.storage_bucket) throw httpError(404, "Attachment not found");
   let object;
   try { object = await objectStorage.download(file); }
@@ -125,6 +150,8 @@ exports.downloadCommentAttachment = handle(async (req, res) => {
   res.on("close", () => object.Body.destroy());
   await pipeline(object.Body, res);
 });
+exports.downloadCommentAttachment = downloadAttachment;
+exports.downloadTaskAttachment = downloadAttachment;
 exports.listViews = handle(async (req, res) => {
   res.json({ data: await TaskView.find({ tenantId: req.session.user.tenantId, employee: req.session.user.id }) });
 });
