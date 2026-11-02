@@ -359,3 +359,67 @@ test("default label follows the logged-in employee's current database department
     await Employee.updateOne({ _id: outsiderUser.id }, { departmentId: outsiderUser.departmentId });
   }
 });
+
+test("comment uploads persist multiple files, enforce access and limits, and clean up failed uploads", async () => {
+  const storage = require("../utils/objectStorage");
+  const { Readable } = require("node:stream");
+  const original = { upload: storage.upload, remove: storage.remove, download: storage.download };
+  const objects = new Map();
+  let failOn = "";
+  storage.upload = async (key, file) => {
+    if (file.originalname === failOn) throw new Error("Simulated object storage failure");
+    objects.set(key, Buffer.from(file.buffer));
+    return { storage_key: key, storage_bucket: "isolated-test-bucket" };
+  };
+  storage.remove = async file => { objects.delete(file.storage_key); };
+  storage.download = async file => ({ Body: Readable.from(objects.get(file.storage_key)) });
+  try {
+    const owner = request.agent(app);
+    await register(owner, "upload-security");
+    const created = await owner.post("/api/tasks").send({ title: "Comment file uploads" }).expect(201);
+    const url = "/api/tasks/" + created.body.data.id + "/comments";
+    await request(app).post(url).field("comment", "Unauthenticated").attach("files", Buffer.from("no"), "denied.txt").expect(401);
+    await outsider.post(url).field("comment", "Other organization").attach("files", Buffer.from("no"), "denied.txt").expect(404);
+    assert.equal(objects.size, 0);
+    await owner.post(url).field("comment", " ").attach("files", Buffer.from("no"), "invalid.txt").expect(400);
+    assert.equal(objects.size, 0);
+    const posted = await owner.post(url).field("comment", "**Attached files**")
+      .attach("files", Buffer.from("first content"), "one.txt")
+      .attach("files", Buffer.from("second content"), "two.txt").expect(201);
+    const comment = posted.body.data.comments[0];
+    assert.equal(comment.attachments.length, 2);
+    assert.equal(objects.size, 2);
+    assert.equal(comment.attachments[0].file_name, "one.txt");
+    const download = new URL(comment.attachments[0].link).pathname;
+    await request(app).get(download).expect(401);
+    await outsider.get(download).expect(404);
+    const downloaded = await owner.get(download).expect(200);
+    assert.equal(downloaded.body.toString(), "first content");
+    assert.match(downloaded.headers["content-disposition"], /^attachment;/);
+    assert.equal(downloaded.headers["x-content-type-options"], "nosniff");
+    const persisted = await owner.get("/api/tasks/" + created.body.data.id).expect(200);
+    assert.equal(persisted.body.data.comments[0].attachments[1].file_name, "two.txt");
+    failOn = "fail.txt";
+    await owner.post(url).field("comment", "Upload failure")
+      .attach("files", Buffer.from("cleanup"), "cleanup.txt")
+      .attach("files", Buffer.from("fail"), "fail.txt").expect(502);
+    assert.equal(objects.size, 2);
+    assert.equal((await owner.get("/api/tasks/" + created.body.data.id)).body.data.comments.length, 1);
+    failOn = "";
+    const Todo = require("../models/Todo");
+    const originalWrite = Todo.updateOne;
+    try {
+      Todo.updateOne = async () => { throw new Error("Simulated database write failure"); };
+      await owner.post(url).field("comment", "Database failure").attach("files", Buffer.from("cleanup"), "rollback.txt").expect(500);
+    } finally { Todo.updateOne = originalWrite; }
+    assert.equal(objects.size, 2);
+    assert.equal((await owner.get("/api/tasks/" + created.body.data.id)).body.data.comments.length, 1);
+    await owner.post(url).field("comment", "Oversized")
+      .attach("files", Buffer.alloc(10 * 1024 * 1024 + 1), "large.bin").expect(413);
+    let tooMany = owner.post(url).field("comment", "Too many files");
+    for (let index = 0; index < 6; index++) tooMany = tooMany.attach("files", Buffer.from("x"), index + ".txt");
+    await tooMany.expect(413);
+    const forged = await owner.post(url).send({ comment: "External link", attachments: [{ file_name: "External", link: "https://example.com/file", storage_key: "forged", storage_bucket: "other" }] }).expect(201);
+    assert.equal(forged.body.data.comments[1].attachments[0].storage_key, undefined);
+  } finally { Object.assign(storage, original); }
+});

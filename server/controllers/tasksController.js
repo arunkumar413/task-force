@@ -3,6 +3,9 @@ const Todo = require("../models/Todo");
 const Employee = require("../models/Employee");
 const TaskView = require("../models/TaskView");
 const { departmentOptions, fieldsForLabels, withDepartmentLabel } = require("../utils/taskDepartments");
+const objectStorage = require("../utils/objectStorage");
+const parseCommentFiles = require("../middlewares/commentFiles");
+const { pipeline } = require("node:stream/promises");
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
 const validId = id => typeof id === "string" && mongoose.isObjectIdOrHexString(id);
@@ -78,11 +81,49 @@ exports.deleteTask = handle(async (req, res) => {
 });
 exports.addComment = handle(async (req, res) => {
   const task = await findTask(req);
+  if (req.is("multipart/form-data")) await parseCommentFiles(req, res);
+  if (typeof req.body.comment !== "string" || !req.body.comment.trim() || req.body.comment.length > 20000) throw httpError(400, "Enter a comment of up to 20000 characters");
   const user = req.session.user;
-  task.comments.push({ comment: req.body.comment, author: user.id, username: user.username, email: user.email, attachments: req.body.attachments || [] });
-  await task.save();
-  await task.populate("employee", "name");
-  res.status(201).json({ data: serialize(task) });
+  if (req.body.attachments && (!Array.isArray(req.body.attachments) || req.body.attachments.some(file => !file || typeof file !== "object"))) throw httpError(400, "Invalid attachments");
+  const links = (req.body.attachments || []).map(file => ({ file_name: file.file_name, link: file.link }));
+  const comment = task.comments.create({ comment: req.body.comment, author: user.id, username: user.username, email: user.email, attachments: links });
+  const validationError = comment.validateSync();
+  if (validationError) throw validationError;
+  const uploaded = [];
+  try {
+    for (const file of req.files || []) {
+      const id = new mongoose.Types.ObjectId();
+      const key = `${user.tenantId}/${task.id}/${comment.id}/${id}`;
+      let stored;
+      try { stored = await objectStorage.upload(key, file); }
+      catch (err) { if (err.status === 503) throw err; throw httpError(502, "Attachment upload failed. Please try again."); }
+      uploaded.push(stored);
+      const base = process.env.PUBLIC_APP_URL || `${req.protocol}://${req.get("host")}`;
+      comment.attachments.push({ _id: id, file_name: file.originalname.replace(/[\x00-\x1f\x7f]/g, "").slice(0, 255) || "attachment", size: file.size, ...stored,
+        link: new URL(`/api/tasks/${task.id}/comments/${comment.id}/attachments/${id}`, base).href });
+    }
+    const attachmentError = comment.validateSync();
+    if (attachmentError) throw attachmentError;
+    const result = await Todo.updateOne({ _id: task._id, tenantId: user.tenantId }, { $push: { comments: comment.toObject() } }, { runValidators: true });
+    if (!result.matchedCount) throw httpError(404, "Task not found");
+  } catch (err) {
+    await Promise.all(uploaded.map(file => objectStorage.remove(file).catch(cleanupError => req.log?.error({ err: cleanupError, key: file.storage_key }, "Attachment cleanup failed"))));
+    throw err;
+  }
+  const updated = await Todo.findById(task._id).populate("employee", "name");
+  res.status(201).json({ data: serialize(updated) });
+});
+exports.downloadCommentAttachment = handle(async (req, res) => {
+  const task = await findTask(req);
+  if (!validId(req.params.commentId) || !validId(req.params.attachmentId)) throw httpError(400, "Invalid attachment ID");
+  const file = task.comments.id(req.params.commentId)?.attachments.id(req.params.attachmentId);
+  if (!file?.storage_key || !file.storage_bucket) throw httpError(404, "Attachment not found");
+  let object;
+  try { object = await objectStorage.download(file); }
+  catch (err) { throw httpError(err.name === "NoSuchKey" ? 404 : 502, "Unable to download attachment"); }
+  res.set({ "Content-Type": "application/octet-stream", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "Content-Disposition": "attachment; filename*=UTF-8''" + encodeURIComponent(file.file_name).replace(/['()*]/g, char => "%" + char.charCodeAt(0).toString(16)) });
+  res.on("close", () => object.Body.destroy());
+  await pipeline(object.Body, res);
 });
 exports.listViews = handle(async (req, res) => {
   res.json({ data: await TaskView.find({ tenantId: req.session.user.tenantId, employee: req.session.user.id }) });

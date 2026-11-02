@@ -363,3 +363,100 @@ test("comments preview Markdown, post from preview, and retain formatting after 
   await expect(posted.locator("li")).toHaveCount(2);
   await expect(posted.locator("script")).toHaveCount(0);
 });
+
+test("comment file selection uploads on submit and supports removal", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("liam.ortiz@acme.example");
+  await page.getByLabel("Password", { exact: true }).fill("demo123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "All tasks", exact: true })).toBeVisible();
+  const tasks = await (await page.request.get("/api/mytasks")).json();
+  await page.goto("/task/" + tasks.data[0].id);
+  const files = page.getByLabel("Attach files", { exact: true });
+  await files.setInputFiles([{ name: "one.txt", mimeType: "text/plain", buffer: Buffer.from("first") }, { name: "two.txt", mimeType: "text/plain", buffer: Buffer.from("second") }]);
+  await page.getByRole("button", { name: "Remove file two.txt", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Remove file two.txt", exact: true })).toHaveCount(0);
+  await page.getByLabel("Add a comment", { exact: true }).fill("**With file**");
+  let submitted = false;
+  await page.route("**/api/tasks/*/comments", async route => {
+    const request = route.request();
+    const body = request.postDataBuffer().toString();
+    expect(request.headers()["content-type"]).toContain("multipart/form-data; boundary=");
+    expect(body).toContain('filename="one.txt"');
+    expect(body).not.toContain('filename="two.txt"');
+    expect(body).toContain("**With file**");
+    submitted = true;
+    const original = tasks.data[0];
+    await route.fulfill({ json: { data: { ...original, comments: [...original.comments, { id: "browser-upload", comment: "**With file**", username: "liam", createdAt: new Date().toISOString(), attachments: [{ file_name: "one.txt", link: "https://example.com/one.txt", size: 5 }] }] } } });
+  });
+  expect(submitted).toBe(false);
+  await page.getByRole("button", { name: "Add comment", exact: true }).click();
+  await expect(page.getByRole("link", { name: "one.txt (0.0 KB)", exact: true })).toBeVisible();
+  expect(submitted).toBe(true);
+  await expect(page.getByRole("button", { name: "Remove file one.txt", exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Add a comment", { exact: true })).toHaveValue("");
+});
+
+test("comment images open an accessible carousel with keyboard controls and error handling", async ({ page }) => {
+  await page.request.post("/api/register", { data: { username: "Image Viewer", email: "image-viewer@example.com", password: "browser-image-password", organizationName: "Image Viewer" } });
+  const task = (await (await page.request.post("/api/tasks", { data: { title: "Image carousel task" } })).json()).data;
+  const origin = "http://127.0.0.1:3040";
+  await page.request.post("/api/tasks/" + task.id + "/comments", { data: { comment: "Images for carousel", attachments: [
+    { file_name: "first.png", link: origin + "/carousel-first.png" },
+    { file_name: "notes.txt", link: origin + "/notes.txt" },
+    { file_name: "second.PNG", link: origin + "/carousel-second.png" },
+    { file_name: "missing.jpg", link: origin + "/carousel-missing.png" },
+  ] } });
+  await page.request.post("/api/tasks/" + task.id + "/comments", { data: { comment: "Single image", attachments: [{ file_name: "single.png", link: origin + "/carousel-first.png" }] } });
+  await page.route("**/api/tasks", async route => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    const uploaded = payload.data.find(item => item.id === task.id).comments[0].attachments[0];
+    uploaded.storage_key = "private/sample-image";
+    uploaded.link = "http://localhost:3000/api/carousel-first.png";
+    await route.fulfill({ response, json: payload });
+  });
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j4uoAAAAASUVORK5CYII=", "base64");
+  let releaseSecondImage;
+  const secondImageReady = new Promise(resolve => { releaseSecondImage = resolve; });
+  await page.route("**/carousel-*.png", async route => {
+    if (route.request().url().includes("second")) await secondImageReady;
+    if (route.request().url().includes("/api/carousel-first")) {
+      expect(route.request().url()).toBe(origin + "/api/carousel-first.png");
+      expect(route.request().headers().cookie).toContain("connect.sid=");
+    }
+    return route.request().url().includes("missing") ? route.fulfill({ status: 403 }) : route.fulfill({ contentType: "application/octet-stream", headers: { "Content-Disposition": "attachment" }, body: png });
+  });
+  await page.goto("/task/" + task.id);
+  const opener = page.getByRole("button", { name: "View images (3)", exact: true });
+  await opener.click();
+  const dialog = page.getByRole("dialog", { name: "Comment images" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("img", { name: "first.png", exact: true })).toBeVisible();
+  await expect.poll(() => dialog.getByRole("img").evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
+  const initialSize = await dialog.boundingBox();
+  await dialog.getByRole("button", { name: "Next image", exact: true }).click();
+  await expect(dialog.getByText("Loading image…", { exact: true })).toBeVisible();
+  const loadingSize = await dialog.boundingBox();
+  expect(Math.abs(loadingSize.height - initialSize.height)).toBeLessThan(1);
+  expect(Math.abs(loadingSize.width - initialSize.width)).toBeLessThan(1);
+  releaseSecondImage();
+  await expect(dialog.getByRole("img", { name: "second.PNG", exact: true })).toBeVisible();
+  const loadedSize = await dialog.boundingBox();
+  expect(Math.abs(loadedSize.height - initialSize.height)).toBeLessThan(1);
+  await expect(dialog.getByRole("status")).toHaveText("2 of 3");
+  await dialog.press("ArrowRight");
+  await expect(dialog.getByRole("alert")).toContainText("Unable to load this image");
+  const errorSize = await dialog.boundingBox();
+  expect(Math.abs(errorSize.height - initialSize.height)).toBeLessThan(1);
+  await dialog.press("ArrowRight");
+  await expect(dialog.getByRole("img", { name: "first.png", exact: true })).toBeVisible();
+  await dialog.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await page.getByRole("button", { name: "View images (1)", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Previous image", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Next image", exact: true })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Close image viewer", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});

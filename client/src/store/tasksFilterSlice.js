@@ -12,7 +12,7 @@ function readDemo() {
 }
 async function request(path, options = {}) {
   const response = await fetch(API_URL + path, { credentials: "include", ...options,
-    headers: { "Content-Type": "application/json", ...options.headers } });
+    headers: { ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }), ...options.headers } });
   const payload = response.status === 204 ? null : await response.json();
   if (!response.ok) throw new Error(payload?.statusMessage || "Request failed");
   return payload?.data;
@@ -43,10 +43,16 @@ export const deleteTask = createAsyncThunk("tasks/delete", async (id, { getState
   if (getState().auth.isLoggedin) await request("/tasks/" + id, { method: "DELETE" });
   dispatch(removeTask(id));
 });
-export const postComment = createAsyncThunk("tasks/comment", async ({ id, comment }, { getState, dispatch }) => {
+export const postComment = createAsyncThunk("tasks/comment", async ({ id, comment, files = [] }, { getState, dispatch }) => {
   let task;
   if (getState().auth.isLoggedin) {
-    task = await request("/tasks/" + id + "/comments", { method: "POST", body: JSON.stringify({ comment }) });
+    let body = JSON.stringify({ comment });
+    if (files.length) {
+      body = new FormData();
+      body.append("comment", comment);
+      files.forEach(file => body.append("files", file));
+    }
+    task = await request("/tasks/" + id + "/comments", { method: "POST", body });
   } else {
     const current = getState().tasks.items.find(item => item.id === id);
     task = { ...current, comments: [...current.comments, { id: crypto.randomUUID(), comment, username: "Demo user", createdAt: new Date().toISOString(), attachments: [] }] };

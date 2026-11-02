@@ -92,3 +92,26 @@ Task and view responses use `{ data: ... }`; errors use `{ statusMessage: ... }`
 `npm run build` validates and builds the production client.
 
 For browser tests, run `npx playwright install chromium --only-shell`, then `npm run build` and `npm run test:ui`. Playwright starts a separate app on port 3040 with a temporary MongoDB database and seeded demo accounts.
+
+### Garage / S3 comment attachments
+
+Signed-in users can select up to five files (10 MB each) while composing a Markdown comment. Selection is local until **Add comment** is pressed. The server authorizes task access, validates the comment, uploads the files, then saves their names, sizes, object keys/bucket and stable download links in `comments[].attachments[]`. Failed upload/database operations attempt to remove objects already uploaded for that comment; the draft remains available to retry. Storage is not required for text-only comments.
+
+Configure these values in `server/.env`:
+
+```dotenv
+S3_ENDPOINT=http://127.0.0.1:3900
+S3_REGION=garage
+S3_BUCKET=dev-uploads
+S3_ACCESS_KEY_ID=your-garage-key-id
+S3_SECRET_ACCESS_KEY=your-garage-secret
+PUBLIC_APP_URL=http://localhost:3031
+```
+
+The existing `GARAGE_DEFAULT_BUCKET`, `GARAGE_DEFAULT_ACCESS_KEY`, and `GARAGE_DEFAULT_SECRET_KEY` names are supported as fallbacks; `S3_*` values take precedence. The endpoint and region default to the values shown. Set `PUBLIC_APP_URL` to the browser-facing application origin in deployments; otherwise links use the incoming request's origin. Restart the server after changing configuration.
+
+Use an existing private bucket with read/write/delete access for the application's key. The SDK uses path-style requests for Garage compatibility; see [Garage's S3 integration guidance](https://garagehq.deuxfleurs.fr/documentation/connect/apps/). Credentials stay on the server. Files pass through the application, so Garage bucket CORS and public website access are unnecessary. Stored links point to authenticated application downloads rather than expiring signed URLs. Downloads enforce task read permission and tenant/task scope and serve files as attachments with `nosniff`.
+
+Uploads use `POST /api/tasks/:taskId/comments` with multipart fields `comment` and repeated `files`; existing JSON comments and external attachment links remain supported. Downloads use `GET /api/tasks/:taskId/comments/:commentId/attachments/:attachmentId`. Task/comment attachments remain distinct. Demo workspace comments remain text-only; sign in to upload real files. Storage integration tests use a fake adapter for deterministic failure/access checks; a live Garage roundtrip was also verified using temporary files and a temporary database.
+
+Cleanup is best-effort: process crashes or object storage cleanup failures can leave orphaned objects. Deleting an entire task currently deletes its database record without purging stored files; use bucket lifecycle/maintenance appropriate to your retention policy.

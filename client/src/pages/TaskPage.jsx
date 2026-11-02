@@ -1,5 +1,6 @@
 import { Button, markdownClasses, Input } from "../components/FormControls";
 import { MarkdownEditor } from "../components/MarkdownEditor";
+import { CommentAttachments } from "../components/CommentAttachments";
 import React, { useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -15,6 +16,8 @@ export function TaskPage() {
     error: loadError
   } = useSelector(state => state.tasks);
   const task = items.find(item => item.id === task_id);
+  const signedIn = useSelector(state => state.auth.isLoggedin);
+  const [commentFiles, setCommentFiles] = useState([]);
   const [comment, setComment] = useState("");
   const [subtask, setSubtask] = useState("");
   const [attachment, setAttachment] = useState({
@@ -138,16 +141,32 @@ export function TaskPage() {
     </section>
     <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Comments ({task.comments.length})</h2>
       {task.comments.map((item, index) => <article className="mb-4 border-b border-slate-200 py-4" key={item.id || item._id || index}><p className="text-sm text-slate-500">{item.username || item.email} · {new Date(item.createdAt).toLocaleString()}</p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
-        {item.attachments?.map((file, i) => <a key={i} href={file.link} rel="noreferrer" target="_blank">{file.file_name}</a>)}
+        <CommentAttachments files={item.attachments} />
       </article>)}
       <form className="space-y-3" onSubmit={event => {
         event.preventDefault();
         run(postComment({
           id: task.id,
-          comment: comment.trim()
-        }), () => setComment(""));
+          comment: comment.trim(), files: commentFiles
+        }), () => { setComment(""); setCommentFiles([]); });
       }}>
-        <MarkdownEditor label="Add a comment" name="comment" rows={4} maxLength={20000} value={comment} onChange={e => setComment(e.target.value)} disabled={busy} placeholder="Write a comment using Markdown…" previewTestId="comment-preview" /><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || !comment.trim()}>Add comment</Button>
+        <MarkdownEditor label="Add a comment" name="comment" rows={4} maxLength={20000} value={comment} onChange={e => setComment(e.target.value)} disabled={busy} placeholder="Write a comment using Markdown…" previewTestId="comment-preview" />
+        {signedIn ? <div className="space-y-2">
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Attach files<Input type="file" multiple disabled={busy} onChange={event => {
+            const selected = [...event.target.files];
+            event.target.value = "";
+            if (commentFiles.length + selected.length > 5 || selected.some(file => file.size > 10 * 1024 * 1024)) {
+              setError("Attach up to 5 files, each 10 MB or smaller."); return;
+            }
+            setError(""); setCommentFiles(current => [...current, ...selected]);
+          }} /></label>
+          <p className="text-xs text-slate-500">Up to 5 files, 10 MB each. Files upload when you post the comment.</p>
+          <ul className="space-y-2">{commentFiles.map((file, index) => <li key={index} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <span className="min-w-0 break-all">{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
+            <Button type="button" disabled={busy} aria-label={"Remove file " + file.name} onClick={() => setCommentFiles(current => current.filter((_, i) => i !== index))}>Remove</Button>
+          </li>)}</ul>
+        </div> : <p className="text-xs text-slate-500">Sign in to attach files to comments.</p>}
+        <Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={busy || !comment.trim()}>Add comment</Button>
       </form>
     </section>
   </>;

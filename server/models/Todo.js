@@ -3,6 +3,9 @@ const { Schema } = mongoose;
 const attachmentSchema = new Schema({
   file_name: { type: String, required: true, trim: true },
   link: { type: String, required: true, validate: value => /^https?:\/\//i.test(value) },
+  storage_key: String,
+  storage_bucket: String,
+  size: Number,
 });
 const commentSchema = new Schema({
   comment: { type: String, required: true, trim: true, maxlength: 20000 },
