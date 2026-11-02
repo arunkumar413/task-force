@@ -95,6 +95,87 @@ For browser tests, run `npx playwright install chromium --only-shell`, then `npm
 
 ### Garage / S3 comment attachments
 
+#### Install Garage for local development
+
+1) Install docker and check the version
+
+```bash
+docker info
+docker compose version
+```
+2) Create a directory for installing and running garage
+```bash
+mkdir -p "$HOME/garage-local"
+cd "$HOME/garage-local"
+```
+
+3) Create a garage.toml file
+
+```bash
+cat > garage.toml <<EOF
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "0.0.0.0:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "$(openssl rand -hex 32)"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "0.0.0.0:3900"
+root_domain = ".s3.garage.localhost"
+public_endpoint = "http://localhost:3900"
+public_endpoint_path_style = true
+EOF
+```
+4) `chmod 600 garage.toml`
+5) Create a `.env` file
+
+```bash
+cat > .env <<EOF
+GARAGE_DEFAULT_ACCESS_KEY=GK$(openssl rand -hex 16)
+GARAGE_DEFAULT_SECRET_KEY=$(openssl rand -hex 32)
+GARAGE_DEFAULT_BUCKET=dev-uploads
+EOF
+```
+
+6) `chmod 600 .env`
+7) Create a docker compose file 
+```bash
+cat > compose.yaml <<'EOF'
+services:
+  garage:
+    image: dxflrs/garage:v2.5.0
+    platform: linux/arm64
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3900:3900"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+
+volumes:
+  garage-meta:
+  garage-data:
+EOF
+```
+8) Run the docker command: `docker compose up -d`
+9) You may run `docker compose logs --tail=100 garage` to check the logs 
+10) Check the node and bucket
+
+```bash
+docker compose exec garage /garage status
+docker compose exec garage /garage bucket info dev-uploads
+```
+
+
+
 Signed-in users can select up to five files (10 MB each) while composing a Markdown comment. Selection is local until **Add comment** is pressed. The server authorizes task access, validates the comment, uploads the files, then saves their names, sizes, object keys/bucket and stable download links in `comments[].attachments[]`. Failed upload/database operations attempt to remove objects already uploaded for that comment; the draft remains available to retry. Storage is not required for text-only comments.
 
 Configure these values in `server/.env`:
