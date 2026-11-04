@@ -3,6 +3,7 @@ import { MarkdownEditor } from "../components/MarkdownEditor";
 import { CommentAttachments } from "../components/CommentAttachments";
 import { AttachmentPicker } from "../components/AttachmentPicker";
 import { SectionTabs } from "../components/SectionTabs";
+import { TaskHistory } from "../components/TaskHistory";
 import React, { useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -65,7 +66,7 @@ export function TaskPage() {
       <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
       <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
-    <SectionTabs tabs={[{ id: "subtasks", label: `Subtasks (${task.subtasks.length})` }, { id: "comments", label: `Comments (${task.comments.length})` }, { id: "attachments", label: `Attachments (${task.attachments.length})` }]}>
+    <SectionTabs tabs={[{ id: "subtasks", label: `Subtasks (${task.subtasks.length})` }, { id: "comments", label: `Comments (${task.comments.length})` }, { id: "attachments", label: `Attachments (${task.attachments.length})` }, { id: "history", label: `History (${task.history?.length || 0})` }]}>
     <details open className="group/subtasks mb-5 rounded-xl border border-slate-200 bg-surface">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-6 text-slate-900 [&::-webkit-details-marker]:hidden">
         <h2 className="text-lg font-semibold tracking-tight">Subtasks ({task.subtasks.length})</h2>
@@ -144,6 +145,7 @@ export function TaskPage() {
         <Input aria-label="Attachment URL" placeholder="https://…" type="url" value={attachment.link} onChange={e => setAttachment({ ...attachment, link: e.target.value })} required /><Button disabled={busy}>Add link</Button>
       </form> */}
     </section>
+    <TaskHistory history={task.history} />
     </SectionTabs>
   </>;
 }

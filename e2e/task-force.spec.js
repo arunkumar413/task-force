@@ -38,11 +38,11 @@ test("demo tasks, editing, comments, subtasks, views, reloads, and themes", asyn
   await page.getByRole("tab", { name: /^Comments/ }).click();
   await page.getByLabel("Add a comment").fill("Browser comment");
   await page.getByRole("button", { name: "Add comment" }).click();
-  await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: /^Comments/ }).getByText("Browser comment", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("checkbox", { name: "Check UI" })).toBeChecked();
   await page.getByRole("tab", { name: /^Comments/ }).click();
-  await expect(page.getByText("Browser comment", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: /^Comments/ }).getByText("Browser comment", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Edit task", exact: true }).click();
   await page.getByRole("tab", { name: "Preview", exact: true }).click();
   await expect(page.getByRole("tabpanel", { name: "Preview" }).locator("strong")).toHaveText("Browser checked");
@@ -508,4 +508,25 @@ test("task creation accepts files, task images use the carousel, and section tab
   await page.reload();
   await page.getByRole("tab", { name: "Attachments (2)", exact: true }).click();
   await expect(page.getByRole("link", { name: "one.png", exact: true })).toBeVisible();
+});
+
+test("History tab shows persisted task changes with actor and before/after values", async ({ page }) => {
+  await page.request.post("/api/register", { data: { username: "History Browser", email: "history-browser@example.com", password: "browser-history-password", organizationName: "History Browser" } });
+  const created = await (await page.request.post("/api/tasks", { data: { title: "History before", priority: "Low" } })).json();
+  await page.request.patch("/api/tasks/" + created.data.id, { data: { title: "History after", priority: "High", description: "Updated description", subtasks: [{ title: "Audit subtask", isDone: true }] } });
+  await page.request.post("/api/tasks/" + created.data.id + "/comments", { data: { comment: "History comment" } });
+  await page.goto("/task/" + created.data.id);
+  await page.getByRole("tab", { name: "History (3)", exact: true }).click();
+  const panel = page.getByRole("tabpanel", { name: "History (3)", exact: true });
+  await expect(panel.getByText("History Browser · Created task", { exact: true })).toBeVisible();
+  await expect(panel.getByText("History Browser · Updated task", { exact: true })).toBeVisible();
+  await expect(panel.getByText("History before", { exact: true })).toBeVisible();
+  await expect(panel.getByText("History after", { exact: true })).toBeVisible();
+  await expect(panel.getByText("Low", { exact: true })).toBeVisible();
+  await expect(panel.getByText("High", { exact: true })).toBeVisible();
+  await expect(panel.getByText("History comment", { exact: true })).toBeVisible();
+  await expect(panel.locator("li").first()).toContainText("Added comment");
+  await page.reload();
+  await page.getByRole("tab", { name: "History (3)", exact: true }).click();
+  await expect(panel.getByText("History before", { exact: true })).toBeVisible();
 });

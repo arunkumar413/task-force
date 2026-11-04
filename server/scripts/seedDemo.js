@@ -299,6 +299,7 @@ async function seed() {
     departmentId: creators[task.created_by].departmentId,
     departmentLabel: departmentPaths.get(String(creators[task.created_by].departmentId)),
     labels: [departmentPaths.get(String(creators[task.created_by].departmentId))],
+    history: [{ actor: creators[task.created_by]._id, actorName: creators[task.created_by].name, action: "created", occurredAt: new Date(), changes: [] }],
   })));
   console.log("Demo organization and Task Force tasks seeded.");
   console.log("");

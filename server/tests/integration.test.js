@@ -471,3 +471,41 @@ test("new tasks upload multiple attachments, protect downloads, and clean up fai
     assert.equal(objects.size, 2);
   } finally { Object.assign(storage, original); }
 });
+
+test("task history records actor and field diffs, preserves comments atomically, and rejects forged records", async () => {
+  const owner = request.agent(app);
+  const identity = await register(owner, "history-owner");
+  const created = await owner.post("/api/tasks").send({ title: "History original", priority: "Low", history: [{ actorName: "Forged" }] }).expect(201);
+  const id = created.body.data.id;
+  assert.equal(created.body.data.history.length, 1);
+  assert.equal(created.body.data.history[0].action, "created");
+  assert.equal(created.body.data.history[0].actor, identity.id);
+  const updated = await owner.patch("/api/tasks/" + id).send({ title: "History updated", priority: "High", subtasks: [{ title: "Review", isDone: false }], attachments: [{ file_name: "Spec", link: "https://example.com/spec" }], history: [] }).expect(200);
+  const event = updated.body.data.history[1];
+  assert.equal(event.actorName, "history-owner");
+  assert.equal(event.actor, identity.id);
+  assert.ok(event.occurredAt);
+  assert.deepEqual(event.changes.find(item => item.field === "title"), { field: "title", before: "History original", after: "History updated" });
+  assert.equal(event.changes.find(item => item.field === "priority").before, "Low");
+  assert.equal(event.changes.find(item => item.field === "priority").after, "High");
+  assert.deepEqual(event.changes.find(item => item.field === "subtasks").after, [{ title: "Review", isDone: false }]);
+  await owner.patch("/api/tasks/" + id).send({ title: "History updated", priority: "High", history: [{ actorName: "Forged" }] }).expect(200);
+  await owner.patch("/api/tasks/" + id).send({ status: "invalid" }).expect(400);
+  const unchanged = await owner.get("/api/tasks/" + id).expect(200);
+  assert.equal(unchanged.body.data.history.length, 2);
+  const comments = await Promise.all(["First", "Second"].map(comment => owner.post("/api/tasks/" + id + "/comments").send({ comment }).expect(201)));
+  const persisted = await owner.get("/api/tasks/" + id).expect(200);
+  assert.equal(persisted.body.data.comments.length, 2);
+  assert.equal(persisted.body.data.history.length, 4);
+  assert.equal(persisted.body.data.history.filter(item => item.action === "commented").length, 2);
+  assert.ok(persisted.body.data.history.some(item => item.changes.some(change => change.field === "comment" && change.after === "Second")));
+  await outsider.get("/api/tasks/" + id).expect(404);
+  const Todo = require("../models/Todo");
+  const stale = await Todo.findById(id);
+  await owner.patch("/api/tasks/" + id).send({ status: "Done" }).expect(200);
+  stale.title = "Stale update";
+  await assert.rejects(() => stale.save(), error => error.name === "VersionError");
+  const final = await owner.get("/api/tasks/" + id).expect(200);
+  assert.equal(final.body.data.title, "History updated");
+  assert.equal(final.body.data.history.length, 5);
+});

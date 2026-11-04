@@ -7,6 +7,7 @@ const objectStorage = require("../utils/objectStorage");
 const parseCommentFiles = require("../middlewares/commentFiles");
 const { pipeline } = require("node:stream/promises");
 const { uploadFiles, cleanupFiles } = require("../utils/taskFileUploads");
+const history = require("../utils/taskHistory");
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
 const validId = id => typeof id === "string" && mongoose.isObjectIdOrHexString(id);
@@ -78,6 +79,7 @@ exports.createTask = handle(async (req, res) => {
   try {
     await uploadFiles(req, task.id, req.files || [], uploaded);
     task.attachments.push(...uploaded);
+    task.history.push(history.event(user, "created"));
     await task.save();
   } catch (err) { await cleanupFiles(req, uploaded); throw err; }
   await task.populate("employee", "name");
@@ -85,6 +87,7 @@ exports.createTask = handle(async (req, res) => {
 });
 exports.updateTask = handle(async (req, res) => {
   const task = await findTask(req);
+  const before = await history.snapshot(task);
   const fields = await editableFields(req.body, req.session.user);
   if (fields.attachments) {
     if (!Array.isArray(fields.attachments) || fields.attachments.some(file => !file || typeof file !== "object")) throw httpError(400, "Invalid attachments");
@@ -95,6 +98,9 @@ exports.updateTask = handle(async (req, res) => {
   }
   if (Object.hasOwn(fields, "labels")) fields.labels = withDepartmentLabel(fields.labels, task.departmentLabel);
   task.set(fields);
+  await task.validate();
+  const changes = history.changes(before, await history.snapshot(task));
+  if (changes.length) task.history.push(history.event(req.session.user, "updated", changes));
   await task.save();
   await task.populate("employee", "name");
   res.json({ data: serialize(task) });
@@ -129,7 +135,9 @@ exports.addComment = handle(async (req, res) => {
     }
     const attachmentError = comment.validateSync();
     if (attachmentError) throw attachmentError;
-    const result = await Todo.updateOne({ _id: task._id, tenantId: user.tenantId }, { $push: { comments: comment.toObject() } }, { runValidators: true });
+    const commentChanges = [{ field: "comment", before: null, after: comment.comment }];
+    if (comment.attachments.length) commentChanges.push({ field: "attachments", before: [], after: comment.attachments.map(item => ({ file_name: item.file_name, link: item.link })) });
+    const result = await Todo.updateOne({ _id: task._id, tenantId: user.tenantId }, { $push: { comments: comment.toObject(), history: history.event(user, "commented", commentChanges) }, $inc: { __v: 1 } }, { runValidators: true });
     if (!result.matchedCount) throw httpError(404, "Task not found");
   } catch (err) {
     await Promise.all(uploaded.map(file => objectStorage.remove(file).catch(cleanupError => req.log?.error({ err: cleanupError, key: file.storage_key }, "Attachment cleanup failed"))));

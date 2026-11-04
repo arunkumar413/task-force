@@ -1,5 +1,6 @@
 module.exports = function errorHandler(err, req, res, next) {
   if (res.headersSent) return next(err);
+  if (err.name === "VersionError") return res.status(409).json({ statusMessage: "This task changed while saving. Reload and try again." });
   req.log?.error({ err }, "Request failed");
   const validationError = err.name === "ValidationError" || err.name === "CastError";
   const status = validationError ? 400 : err.code === 11000 ? 409 : (err.status || 500);

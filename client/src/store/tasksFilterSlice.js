@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { tasks as sampleTasks } from "./tasks";
 import { API_URL } from "../constants";
+import { demoChanges, demoHistoryEvent } from "./taskHistory";
 
 const DEMO_KEY = "task-force-demo-v1";
 function readDemo() {
@@ -43,6 +44,8 @@ export const saveTask = createAsyncThunk("tasks/save", async (task, { getState, 
   const merged = { ...current, ...fields };
   const result = { ...merged, id: merged.id || crypto.randomUUID(), user: merged.user || "Demo user",
     comments: merged.comments || [], subtasks: merged.subtasks || [], attachments: merged.attachments || [] };
+  const changes = task.id ? demoChanges(current, result) : [];
+  result.history = [...(current.history || []), ...(!task.id ? [demoHistoryEvent("created")] : changes.length ? [demoHistoryEvent("updated", changes)] : [])];
   dispatch(upsertTask(result));
   return result;
 });
@@ -62,7 +65,7 @@ export const postComment = createAsyncThunk("tasks/comment", async ({ id, commen
     task = await request("/tasks/" + id + "/comments", { method: "POST", body });
   } else {
     const current = getState().tasks.items.find(item => item.id === id);
-    task = { ...current, comments: [...current.comments, { id: crypto.randomUUID(), comment, username: "Demo user", createdAt: new Date().toISOString(), attachments: [] }] };
+    task = { ...current, comments: [...current.comments, { id: crypto.randomUUID(), comment, username: "Demo user", createdAt: new Date().toISOString(), attachments: [] }], history: [...(current.history || []), demoHistoryEvent("commented", [{ field: "comment", before: null, after: comment }])] };
   }
   dispatch(upsertTask(task));
 });
