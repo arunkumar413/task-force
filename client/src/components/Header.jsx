@@ -32,7 +32,10 @@ export function Header() {
             {auth.isLoggedin ? <> 
             <Link to="/profile">Profile & organization</Link><span className="text-sm text-slate-500">{auth.email}</span>
             <Notifications className="ml-auto" key={auth.id} />
-            <Button onClick={signOut}>Sign out</Button></> : <><Link to="/login">Sign in</Link><Link to="/register">Create organization</Link></>}
+            <Button onClick={signOut}>Sign out</Button>
+            </> : <>
+            <Link to="/login">Sign in</Link><Link to="/register">Create organization</Link></>}
+            <ThemeSelect className="ml-auto" />
 
 
       {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
