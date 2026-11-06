@@ -509,3 +509,54 @@ test("task history records actor and field diffs, preserves comments atomically,
   assert.equal(final.body.data.title, "History updated");
   assert.equal(final.body.data.history.length, 5);
 });
+
+test("mention notifications persist, isolate recipients and tenants, and synchronize edits", async () => {
+  const Notification = require("../models/Notification");
+  await request(app).get("/api/notifications").expect(401);
+  const created = await admin.post("/api/tasks").send({ title: "Mentions" }).expect(201);
+  const id = created.body.data.id;
+  const posted = await admin.post(`/api/tasks/${id}/comments`).send({
+    comment: `Hello @ALPHA@example.com, alpha@example.com and ${outsiderUser.email}`,
+  }).expect(201);
+  const commentId = posted.body.data.comments[0]._id;
+  const list = await admin.get("/api/notifications").expect(200);
+  const item = list.body.data.find(item => item.taskId === id);
+  assert.ok(item);
+  assert.equal(item.tenantId, adminUser.tenantId);
+  assert.equal(item.employeeId, adminUser.id);
+  assert.equal(await Notification.countDocuments({ taskId: id }), 1);
+  assert.equal((await outsider.get("/api/notifications").expect(200)).body.unreadCount, 0);
+  await outsider.patch(`/api/notifications/${item.id}/read`).expect(404);
+  await admin.patch(`/api/notifications/${item.id}/read`).expect(204);
+  await admin.patch(`/api/tasks/${id}/comments/${commentId}`).send({ comment: "Still alpha@example.com" }).expect(200);
+  assert.ok((await Notification.findById(item.id)).readAt);
+  await admin.patch(`/api/tasks/${id}/comments/${commentId}`).send({ comment: "Mention removed" }).expect(200);
+  assert.equal(await Notification.countDocuments({ taskId: id }), 0);
+  await admin.patch(`/api/tasks/${id}/comments/${commentId}`).send({ comment: "Again alpha@example.com" }).expect(200);
+  await admin.patch("/api/notifications/read-all").expect(204);
+  assert.equal((await admin.get("/api/notifications")).body.unreadCount, 0);
+  await admin.delete(`/api/tasks/${id}`).expect(204);
+  assert.equal(await Notification.countDocuments({ taskId: id }), 0);
+});
+
+test("notification failures preserve comments and can be retried without duplicates", async () => {
+  const Notification = require("../models/Notification");
+  const Todo = require("../models/Todo");
+  const { syncCommentNotifications } = require("../utils/commentNotifications");
+  const created = await admin.post("/api/tasks").send({ title: "Retry mentions" }).expect(201);
+  const id = created.body.data.id;
+  const original = Notification.updateOne;
+  try {
+    Notification.updateOne = async () => { throw new Error("Temporary notification outage"); };
+    await admin.post(`/api/tasks/${id}/comments`).send({ comment: "Please review alpha@example.com" }).expect(201);
+  } finally { Notification.updateOne = original; }
+  const task = await Todo.findById(id).select("+comments.notificationsPending");
+  assert.equal(task.comments.length, 1);
+  assert.equal(task.comments[0].notificationsPending, true);
+  await syncCommentNotifications(task, task.comments[0], adminUser);
+  await syncCommentNotifications(task, task.comments[0], adminUser);
+  assert.equal(await Notification.countDocuments({ taskId: id }), 1);
+  const recovered = await Todo.findById(id).select("+comments.notificationsPending");
+  assert.equal(recovered.comments[0].notificationsPending, false);
+  await admin.delete(`/api/tasks/${id}`).expect(204);
+});

@@ -10,6 +10,7 @@ const attachmentSchema = new Schema({
 const commentSchema = new Schema({
   comment: { type: String, required: true, trim: true, maxlength: 20000 },
   author: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
+  notificationsPending: { type: Boolean, default: true, select: false },
   username: String,
   email: String,
   attachments: [attachmentSchema],

@@ -74,7 +74,10 @@ app.use(express.static(clientDist));
 app.get("*", (req, res) => res.sendFile(path.join(clientDist, "index.html")));
 app.use(require("./middlewares/errorHandlerMiddleware"));
 if (require.main === module) {
-  connectDB().then(() => app.listen(SERVER_PORT, "0.0.0.0", () => logger.info({ port: SERVER_PORT }, "Task Force listening")))
+  connectDB().then(() => {
+    require("./utils/commentNotifications").startNotificationRetries(logger);
+    return app.listen(SERVER_PORT, "0.0.0.0", () => logger.info({ port: SERVER_PORT }, "Task Force listening"));
+  })
     .catch(err => { logger.error({ err }, "MongoDB startup failed"); process.exit(1); });
 }
 module.exports = app;

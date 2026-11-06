@@ -1,10 +1,14 @@
-import React, { useId, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { Button } from "./FormControls";
 
-export function SectionTabs({ tabs, children }) {
+export function SectionTabs({ tabs, children, activeId }) {
   const id = useId();
   const [active, setActive] = useState(0);
   const buttons = useRef([]);
+  useEffect(() => {
+    const index = tabs.findIndex(tab => tab.id === activeId);
+    if (index >= 0) setActive(index);
+  }, [activeId]);
   return <div>
     <div role="tablist" aria-label="Task sections" className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
       {tabs.map((tab, index) => <Button key={tab.id} type="button" role="tab" id={`${id}-${tab.id}-tab`} aria-controls={`${id}-${tab.id}-panel`} aria-selected={active === index} tabIndex={active === index ? 0 : -1} ref={element => { buttons.current[index] = element; }}

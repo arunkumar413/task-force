@@ -7,6 +7,8 @@ const objectStorage = require("../utils/objectStorage");
 const parseCommentFiles = require("../middlewares/commentFiles");
 const { pipeline } = require("node:stream/promises");
 const { uploadFiles, cleanupFiles } = require("../utils/taskFileUploads");
+const Notification = require("../models/Notification");
+const { syncCommentNotifications } = require("../utils/commentNotifications");
 const history = require("../utils/taskHistory");
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
@@ -108,6 +110,7 @@ exports.updateTask = handle(async (req, res) => {
 exports.deleteTask = handle(async (req, res) => {
   const task = await findTask(req);
   await task.deleteOne();
+  await Notification.deleteMany({ tenantId: task.tenantId, taskId: task._id });
   res.status(204).end();
 });
 exports.addComment = handle(async (req, res) => {
@@ -143,8 +146,26 @@ exports.addComment = handle(async (req, res) => {
     await Promise.all(uploaded.map(file => objectStorage.remove(file).catch(cleanupError => req.log?.error({ err: cleanupError, key: file.storage_key }, "Attachment cleanup failed"))));
     throw err;
   }
+  await syncCommentNotifications(task, comment, user).catch(err => req.log?.error({ err }, "Mention notifications queued for retry"));
   const updated = await Todo.findById(task._id).populate("employee", "name");
   res.status(201).json({ data: serialize(updated) });
+});
+exports.updateComment = handle(async (req, res) => {
+  const task = await findTask(req);
+  if (!validId(req.params.commentId)) throw httpError(400, "Invalid comment ID");
+  const comment = task.comments.id(req.params.commentId);
+  if (!comment) throw httpError(404, "Comment not found");
+  const user = req.session.user;
+  if (String(comment.author) !== user.id) throw httpError(403, "Only the author can edit this comment");
+  if (typeof req.body.comment !== "string" || !req.body.comment.trim() || req.body.comment.length > 20000) throw httpError(400, "Enter a comment of up to 20000 characters");
+  const before = comment.comment;
+  comment.comment = req.body.comment.trim();
+  comment.notificationsPending = true;
+  task.history.push(history.event(user, "commented", [{ field: "comment", before, after: comment.comment }]));
+  await task.save();
+  await syncCommentNotifications(task, comment, user).catch(err => req.log?.error({ err }, "Mention notifications queued for retry"));
+  await task.populate("employee", "name");
+  res.json({ data: serialize(task) });
 });
 const downloadAttachment = handle(async (req, res) => {
   const task = await findTask(req);
