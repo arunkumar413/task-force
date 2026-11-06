@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { isToday, isTomorrow, isThisWeek, isThisMonth, addWeeks, addMonths, isSameWeek, isSameMonth, isBefore, startOfDay } from "date-fns";
 import { loadTasks } from "../store/tasksFilterSlice";
+import { format } from "date-fns";
+
 export default function App() {
   const {
     viewId
@@ -113,7 +115,7 @@ export default function App() {
                 <td className={cellClasses}><span className={priorityClasses[task.priority]}>{task.priority}</span></td>
                 <td className={cellClasses + "whitespace-nowrap"}>{task.status}</td>
                 <td className={cellClasses + "wrap-anywhere"}>{task.user || "—"}</td>
-                <td className={cellClasses + "border-r whitespace-nowrap " + (firstTask ? "rounded-tr-lg " : "") + (lastTask ? "rounded-br-lg" : "")}>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</td>
+                <td className={cellClasses + "border-r whitespace-nowrap " + (firstTask ? "rounded-tr-lg " : "") + (lastTask ? "rounded-br-lg" : "")}>{task.dueDate ?  format(new Date(task.dueDate),"dd-MMM-yyyy") : "—"}</td>
               </tr>;
             })}
           </tbody>;
