@@ -11,7 +11,7 @@ router.patch("/notifications/:notificationId/read", notifications.read);
 const allow = action => checkAuthorization({ resource: "task", action });
 router.get("/tasks/departments", checkAuthorization({ permissions: ["task.write", "task.update"] }), tasks.listTaskDepartments);
 router.get("/tasks/assignees",
-  checkAuthorization({ permissions: ["task.write", "task.update"] }),
+  checkAuthorization({ permissions: ["task.read", "task.write", "task.update"] }),
   require("../controllers/userController").getTaskAssignees);
 router.get("/tasks", allow("read"), tasks.listTasks);
 router.post("/tasks", allow("write"), tasks.createTask);
