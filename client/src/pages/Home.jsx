@@ -73,8 +73,8 @@ export function Home() {
           session + RBAC
         </h1>
         <h4>count: {count}</h4>
-        <button onClick={handleIncrement}>increment</button>
-        <button onClick={handleDecrement}>decrement</button>
+        <button className="text-lg" onClick={handleIncrement}>increment</button>
+        <button className="text-lg" onClick={handleDecrement}>decrement</button>
         <h2 style={{ textAlign: "center" }}> Tasks </h2>
         <div
           style={{

@@ -48,7 +48,7 @@ export function LoginPage() {
       <input onChange={handleUserCred} type="email" name="email" />
       <label htmlFor="password">Password</label>
       <input onChange={handleUserCred} type="password" name="password" />
-      <button onClick={handleLogin}>Login</button>
+      <button className="text-lg" onClick={handleLogin}>Login</button>
     </div>
   );
 }

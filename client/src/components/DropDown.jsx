@@ -18,7 +18,7 @@ export function DropDown({ options, value, handleSelected }) {
   return (
     <div class="dropdown">
       <button
-        className="ser-btn-normal-small-outlined"
+        className="ser-btn-normal-small-outlined text-lg"
         style={{ textAlign: "center", verticalAlign: "middle" }}
       >
         {" "}

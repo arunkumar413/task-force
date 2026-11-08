@@ -80,7 +80,7 @@ export function TaskModal({ isModalOpen, closeModal, selectedTask }) {
                 <div className="selected-task-modal-comments-container">
                     {commentElements}
                     <textarea placeholder="Enter your comments here" rows={5} cols={100} />
-                    <button> Add comment </button>
+                    <button className="text-lg"> Add comment </button>
 
                 </div>
             </div>
@@ -89,7 +89,7 @@ export function TaskModal({ isModalOpen, closeModal, selectedTask }) {
                 <div></div>
                 <div></div>
                 <div></div>
-                <button className="button-close" onClick={closeModal}> Close </button>
+                <button className="button-close text-lg" onClick={closeModal}> Close </button>
             </div>
         </dialog>
     );

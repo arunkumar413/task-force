@@ -1,8 +1,7 @@
 import React, { forwardRef } from "react";
 
 export const controlClasses = "block w-full rounded-lg border border-slate-300 bg-surface px-3 py-2.5 text-sm leading-5 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60";
-export const buttonClasses = "rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60";
-export const primaryButtonClasses = "inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60";
+export const buttonClasses = "rounded-lg border border-slate-300 bg-surface px-3 py-2 text-lg font-medium text-slate-700 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60";
 export const markdownClasses = "wrap-anywhere [&_p]:my-3 [&_a]:text-primary [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-3 [&_h1]:my-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:my-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:my-3 [&_h3]:text-lg [&_h3]:font-semibold [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_blockquote]:text-slate-500 [&_img]:max-w-full";
 export const priorityClasses = {
   Low: "rounded-md bg-emerald-100 px-2 py-1 text-xs text-emerald-700",
@@ -36,5 +35,5 @@ export const Textarea = forwardRef(function Textarea({ className, ...props }, re
 });
 
 export const Button = forwardRef(function Button({ className, ...props }, ref) {
-  return <button ref={ref} className={className || buttonClasses} {...props} />;
+  return <button ref={ref} className={(className || buttonClasses) + " text-lg"} {...props} />;
 });

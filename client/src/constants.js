@@ -1,6 +1,14 @@
 export const API_URL = process.env.REACT_APP_API_URL || "/api";
 export const API_KEY = process.env.REACT_APP_API_KEY;
 
+export const buttonStyles = {
+  primary: [
+    "inline-flex", "items-center", "justify-center", "rounded-lg", "border", "border-transparent",
+    "bg-primary", "px-4", "py-2.5", "text-lg", "font-medium", "text-white", "transition-colors",
+    "hover:bg-primary-hover", "disabled:cursor-not-allowed", "disabled:opacity-60",
+  ],
+};
+
 export const PRIORITY_OPTIONS = [
   {
     option: "Low",

@@ -9,7 +9,7 @@ export function LabelsInput({ value, onChange, suggestions = [], disabled = fals
     <div className="flex flex-wrap gap-2" aria-label="Selected labels">
       {value.map(label => <span key={label} className="inline-flex max-w-full items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
         <span className="break-all">{label}</span>
-        {label === lockedLabel ? <span aria-label={"Required department label " + label} className="text-xs opacity-70">Required</span> : <button type="button" aria-label={"Remove label " + label} onClick={() => onChange(value.filter(item => item !== label))} className="rounded px-1 hover:bg-primary/10">×</button>}
+      {label === lockedLabel ? <span aria-label={"Required department label " + label} className="text-xs opacity-70">Required</span> : <button type="button" aria-label={"Remove label " + label} onClick={() => onChange(value.filter(item => item !== label))} className="rounded px-1 text-lg hover:bg-primary/10">×</button>}
       </span>)}
     </div>
     <Input id={id} value={draft} disabled={disabled} list={id + "-suggestions"} aria-describedby={id + "-hint"} placeholder="Type a label and press Enter" maxLength={1000}

@@ -1,6 +1,6 @@
 import { Input, Select, Button } from "./FormControls";
 import React, { useEffect, useState } from "react";
-import { API_URL } from "../constants";
+import { API_URL, buttonStyles } from "../constants";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { saveTask } from "../store/tasksFilterSlice";
@@ -88,6 +88,6 @@ export function TaskForm({
     <MarkdownEditor value={form.description} onChange={change} />
     <LabelsInput value={form.labels} lockedLabel={lockedLabel} onChange={labels => setForm(current => ({ ...current, labels }))} suggestions={departments.map(item => item.path)} disabled={loadingDepartments} />
     {!task && (auth.isLoggedin ? <AttachmentPicker files={files} onChange={setFiles} onError={setError} disabled={saving} label="Task attachments" /> : <p className="text-xs text-slate-500">Sign in to upload task attachments.</p>)}
-    <div className="flex flex-wrap items-center gap-3"><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={saving || loadingDepartments}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</Button><Button type="button" onClick={() => navigate(-1)}>Cancel</Button></div>
+    <div className="flex flex-wrap items-center gap-3"><Button className={buttonStyles.primary.join(" ")} disabled={saving || loadingDepartments}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</Button><Button type="button" onClick={() => navigate(-1)}>Cancel</Button></div>
   </form>;
 }

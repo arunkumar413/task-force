@@ -40,7 +40,7 @@ export function Labels({ selectedLabels, setSelectedLabels }) {
         name={item}
         onClick={toggleLabel}
         key={index.toString()}
-        className={addClass(item)}
+        className={addClass(item) + " text-lg"}
       >
         {" "}
         {item}

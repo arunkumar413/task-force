@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { saveView } from "../store/tasksFilterSlice";
-import { API_URL } from "../constants";
+import { API_URL, buttonStyles } from "../constants";
 export function CreateViewPage() {
   const [name, setName] = useState("");
   const [priorities, setPriorities] = useState([]);
@@ -65,6 +65,6 @@ export function CreateViewPage() {
             const id = String(employee.id || employee._id);
             return <label className="inline-flex min-h-9 cursor-pointer items-center gap-2.5 px-1 py-1.5 text-sm font-medium leading-normal pointer-coarse:min-h-11" key={id}><Input type="checkbox" checked={selectedEmployees.includes(id)} onChange={() => toggle(id, selectedEmployees, setSelectedEmployees)} />{employee.name}</label>;
           })}</div></fieldset>
-    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Labels (comma separated)<Input value={labels} onChange={e => setLabels(e.target.value)} /></label><Button className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60" disabled={saving}>{saving ? "Saving…" : "Save view"}</Button>
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Labels (comma separated)<Input value={labels} onChange={e => setLabels(e.target.value)} /></label><Button className={buttonStyles.primary.join(" ")} disabled={saving}>{saving ? "Saving…" : "Save view"}</Button>
   </form></>;
 }

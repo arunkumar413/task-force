@@ -231,8 +231,8 @@ export function MicroTasks() {
             <button
               className={
                 newTaskInput.length > 0
-                  ? "ser-btn-primary-small"
-                  : "ser-btn-disabled-small"
+                  ? "ser-btn-primary-small text-lg"
+                  : "ser-btn-disabled-small text-lg"
               }
               onClick={addNewTask}
             >
