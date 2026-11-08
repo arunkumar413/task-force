@@ -25,6 +25,12 @@ export const loadTasks = createAsyncThunk("tasks/load", async (_, { getState }) 
   const [items, views] = await Promise.all([request("/tasks"), request("/views")]);
   return { items, views, owner };
 });
+export const loadTask = createAsyncThunk("tasks/loadOne", async (id, { getState, dispatch }) => {
+  if (!getState().auth.isLoggedin) return getState().tasks.items.find(item => item.id === id);
+  const task = await request("/tasks/" + id);
+  dispatch(upsertTask(task));
+  return task;
+});
 export const saveTask = createAsyncThunk("tasks/save", async (task, { getState, dispatch }) => {
   const { files = [], ...fields } = task;
   if (getState().auth.isLoggedin) {

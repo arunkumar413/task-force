@@ -20,8 +20,10 @@
 
 :root {
   color-scheme: light;
-  --theme-primary: #4f46e5;
-  --theme-primary-hover: #4338ca;
+  /* --theme-primary: #4f46e5; */
+    --theme-primary:rgb(0,113,227);
+  /* --theme-primary-hover: #4338ca; */
+  --theme-primary-hover: #0076DF;
   --theme-surface: #ffffff;
   --theme-canvas: #f5f6fb;
   --theme-muted: #eef0f8;

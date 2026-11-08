@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
+const Comment = require("../models/Comment");
+const TaskHistory = require("../models/TaskHistory");
 const Employee = require("../models/Employee");
 const TaskView = require("../models/TaskView");
 const { departmentOptions, fieldsForLabels, withDepartmentLabel } = require("../utils/taskDepartments");
@@ -38,28 +40,39 @@ async function editableFields(body, user) {
   }
   return values;
 }
-function serialize(task) {
+async function serialize(task, includeActivity = false) {
   const value = task.toJSON();
   if (value.employee && typeof value.employee === "object" && value.employee.name) {
     value.user = value.employee.name;
     // Employee.toJSON exposes "id" and removes "_id" from populated records.
     value.employee = value.employee.id;
   }
+  if (includeActivity) {
+    const [comments, historyItems] = await Promise.all([
+      Comment.find({ tenantId: task.tenantId, taskId: task._id }).sort({ createdAt: 1 }).lean(),
+      TaskHistory.find({ tenantId: task.tenantId, taskId: task._id }).sort({ occurredAt: 1, _id: 1 }).lean(),
+    ]);
+    value.comments = comments;
+    value.history = historyItems;
+  } else {
+    value.comments = [];
+    value.history = [];
+  }
   return value;
 }
 const handle = fn => async (req, res, next) => { try { await fn(req, res); } catch (err) { next(err); } };
 exports.listTasks = handle(async (req, res) => {
   const tasks = await Todo.find(await taskScope(req.session.user)).populate("employee", "name").sort({ dueDate: 1 });
-  res.json({ data: tasks.map(serialize) });
+  res.json({ data: await Promise.all(tasks.map(task => serialize(task))) });
 });
 exports.getMyTasks = handle(async (req, res) => {
   const tasks = await Todo.find({ tenantId: req.session.user.tenantId, employee: req.session.user.id }).populate("employee", "name");
-  res.json({ data: tasks.map(serialize) });
+  res.json({ data: await Promise.all(tasks.map(task => serialize(task))) });
 });
 exports.getTask = handle(async (req, res) => {
   const task = await findTask(req);
   await task.populate("employee", "name");
-  res.json({ data: serialize(task) });
+  res.json({ data: await serialize(task, true) });
 });
 exports.createTask = handle(async (req, res) => {
   if (req.is("multipart/form-data")) {
@@ -81,11 +94,11 @@ exports.createTask = handle(async (req, res) => {
   try {
     await uploadFiles(req, task.id, req.files || [], uploaded);
     task.attachments.push(...uploaded);
-    task.history.push(history.event(user, "created"));
     await task.save();
+    await TaskHistory.create({ tenantId: task.tenantId, taskId: task._id, ...history.event(user, "created") });
   } catch (err) { await cleanupFiles(req, uploaded); throw err; }
   await task.populate("employee", "name");
-  res.status(201).json({ data: serialize(task) });
+  res.status(201).json({ data: await serialize(task, true) });
 });
 exports.updateTask = handle(async (req, res) => {
   const task = await findTask(req);
@@ -102,14 +115,18 @@ exports.updateTask = handle(async (req, res) => {
   task.set(fields);
   await task.validate();
   const changes = history.changes(before, await history.snapshot(task));
-  if (changes.length) task.history.push(history.event(req.session.user, "updated", changes));
   await task.save();
+  if (changes.length) await TaskHistory.create({ tenantId: task.tenantId, taskId: task._id, ...history.event(req.session.user, "updated", changes) });
   await task.populate("employee", "name");
-  res.json({ data: serialize(task) });
+  res.json({ data: await serialize(task, true) });
 });
 exports.deleteTask = handle(async (req, res) => {
   const task = await findTask(req);
   await task.deleteOne();
+  await Promise.all([
+    Comment.deleteMany({ tenantId: task.tenantId, taskId: task._id }),
+    TaskHistory.deleteMany({ tenantId: task.tenantId, taskId: task._id }),
+  ]);
   await Notification.deleteMany({ tenantId: task.tenantId, taskId: task._id });
   res.status(204).end();
 });
@@ -120,7 +137,7 @@ exports.addComment = handle(async (req, res) => {
   const user = req.session.user;
   if (req.body.attachments && (!Array.isArray(req.body.attachments) || req.body.attachments.some(file => !file || typeof file !== "object"))) throw httpError(400, "Invalid attachments");
   const links = (req.body.attachments || []).map(file => ({ file_name: file.file_name, link: file.link }));
-  const comment = task.comments.create({ comment: req.body.comment, author: user.id, username: user.username, email: user.email, attachments: links });
+  const comment = new Comment({ tenantId: task.tenantId, taskId: task._id, comment: req.body.comment, author: user.id, username: user.username, email: user.email, attachments: links });
   const validationError = comment.validateSync();
   if (validationError) throw validationError;
   const uploaded = [];
@@ -140,20 +157,20 @@ exports.addComment = handle(async (req, res) => {
     if (attachmentError) throw attachmentError;
     const commentChanges = [{ field: "comment", before: null, after: comment.comment }];
     if (comment.attachments.length) commentChanges.push({ field: "attachments", before: [], after: comment.attachments.map(item => ({ file_name: item.file_name, link: item.link })) });
-    const result = await Todo.updateOne({ _id: task._id, tenantId: user.tenantId }, { $push: { comments: comment.toObject(), history: history.event(user, "commented", commentChanges) }, $inc: { __v: 1 } }, { runValidators: true });
-    if (!result.matchedCount) throw httpError(404, "Task not found");
+    await comment.save();
+    await TaskHistory.create({ tenantId: task.tenantId, taskId: task._id, ...history.event(user, "commented", commentChanges) });
   } catch (err) {
     await Promise.all(uploaded.map(file => objectStorage.remove(file).catch(cleanupError => req.log?.error({ err: cleanupError, key: file.storage_key }, "Attachment cleanup failed"))));
     throw err;
   }
   await syncCommentNotifications(task, comment, user).catch(err => req.log?.error({ err }, "Mention notifications queued for retry"));
   const updated = await Todo.findById(task._id).populate("employee", "name");
-  res.status(201).json({ data: serialize(updated) });
+  res.status(201).json({ data: await serialize(updated, true) });
 });
 exports.updateComment = handle(async (req, res) => {
   const task = await findTask(req);
   if (!validId(req.params.commentId)) throw httpError(400, "Invalid comment ID");
-  const comment = task.comments.id(req.params.commentId);
+  const comment = await Comment.findOne({ tenantId: task.tenantId, taskId: task._id, _id: req.params.commentId }).select("+notificationsPending");
   if (!comment) throw httpError(404, "Comment not found");
   const user = req.session.user;
   if (String(comment.author) !== user.id) throw httpError(403, "Only the author can edit this comment");
@@ -161,16 +178,17 @@ exports.updateComment = handle(async (req, res) => {
   const before = comment.comment;
   comment.comment = req.body.comment.trim();
   comment.notificationsPending = true;
-  task.history.push(history.event(user, "commented", [{ field: "comment", before, after: comment.comment }]));
-  await task.save();
+  await comment.save();
+  await TaskHistory.create({ tenantId: task.tenantId, taskId: task._id, ...history.event(user, "commented", [{ field: "comment", before, after: comment.comment }]) });
   await syncCommentNotifications(task, comment, user).catch(err => req.log?.error({ err }, "Mention notifications queued for retry"));
   await task.populate("employee", "name");
-  res.json({ data: serialize(task) });
+  res.json({ data: await serialize(task, true) });
 });
 const downloadAttachment = handle(async (req, res) => {
   const task = await findTask(req);
   if (req.params.commentId && !validId(req.params.commentId) || !validId(req.params.attachmentId)) throw httpError(400, "Invalid attachment ID");
-  const file = req.params.commentId ? task.comments.id(req.params.commentId)?.attachments.id(req.params.attachmentId) : task.attachments.id(req.params.attachmentId);
+  const comment = req.params.commentId ? await Comment.findOne({ tenantId: task.tenantId, taskId: task._id, _id: req.params.commentId }) : null;
+  const file = req.params.commentId ? comment?.attachments.id(req.params.attachmentId) : task.attachments.id(req.params.attachmentId);
   if (!file?.storage_key || !file.storage_bucket) throw httpError(404, "Attachment not found");
   let object;
   try { object = await objectStorage.download(file); }

@@ -13,6 +13,8 @@ const {
 } = require("../utils/accessControl");
 
 const Todo = require("../models/Todo");
+const TaskHistory = require("../models/TaskHistory");
+const Comment = require("../models/Comment");
 const TaskView = require("../models/TaskView");
 const { fakeTaskData } = require("../dummyData/fakeTaskDataInsertIntoDB");
 
@@ -74,6 +76,7 @@ async function clearDemoOrg() {
 
   const tenantId = existing._id;
   await Todo.deleteMany({ tenantId });
+  await Promise.all([Comment.deleteMany({ tenantId }), TaskHistory.deleteMany({ tenantId })]);
   await TaskView.deleteMany({ tenantId });
   await Permission.deleteMany({ tenantId });
   await RoleAssignment.deleteMany({ tenantId });
@@ -299,8 +302,11 @@ async function seed() {
     departmentId: creators[task.created_by].departmentId,
     departmentLabel: departmentPaths.get(String(creators[task.created_by].departmentId)),
     labels: [departmentPaths.get(String(creators[task.created_by].departmentId))],
-    history: [{ actor: creators[task.created_by]._id, actorName: creators[task.created_by].name, action: "created", occurredAt: new Date(), changes: [] }],
   })));
+  const seededTasks = await Todo.find({ tenantId }).select("_id createdBy");
+  await TaskHistory.insertMany(seededTasks.map(task => ({ tenantId, taskId: task._id, actor: task.createdBy,
+    actorName: creators[Object.keys(creators).find(key => String(creators[key]._id) === String(task.createdBy))]?.name || "Demo user",
+    action: "created", occurredAt: new Date(), changes: [] })));
   console.log("Demo organization and Task Force tasks seeded.");
   console.log("");
   console.log("Organization: Acme Corp");

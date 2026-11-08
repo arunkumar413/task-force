@@ -7,21 +7,6 @@ const attachmentSchema = new Schema({
   storage_bucket: String,
   size: Number,
 });
-const commentSchema = new Schema({
-  comment: { type: String, required: true, trim: true, maxlength: 20000 },
-  author: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
-  notificationsPending: { type: Boolean, default: true, select: false },
-  username: String,
-  email: String,
-  attachments: [attachmentSchema],
-}, { timestamps: true });
-const historySchema = new Schema({
-  actor: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
-  actorName: { type: String, required: true },
-  action: { type: String, enum: ["created", "updated", "commented"], required: true },
-  occurredAt: { type: Date, required: true, default: Date.now },
-  changes: [{ _id: false, field: { type: String, required: true }, before: Schema.Types.Mixed, after: Schema.Types.Mixed }],
-});
 const todoSchema = new Schema({
   title: { type: String, required: true, trim: true, maxlength: 300 },
   description: { type: String, default: "", maxlength: 50000 },
@@ -34,8 +19,6 @@ const todoSchema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
   employee: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
   createdBy: { type: Schema.Types.ObjectId, ref: "Employee", required: true },
-  comments: [commentSchema],
-  history: [historySchema],
   attachments: [attachmentSchema],
   subtasks: [{ title: { type: String, required: true, trim: true }, isDone: { type: Boolean, default: false } }],
 }, { timestamps: true, optimisticConcurrency: true, toJSON: { virtuals: true, transform(doc, ret) {

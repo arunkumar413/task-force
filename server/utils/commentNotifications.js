@@ -1,5 +1,6 @@
 const Employee = require("../models/Employee");
 const Notification = require("../models/Notification");
+const Comment = require("../models/Comment");
 
 // Accept plain emails and @email mentions, including Markdown links. Match whole
 // addresses so a suffix of another address cannot notify the wrong employee.
@@ -20,15 +21,13 @@ async function syncCommentNotifications(task, comment, actor) {
         actorName: actor.name || actor.username, type: "comment_mention", readAt: null } }, { upsert: true });
     } catch (err) { if (err.code !== 11000) throw err; }
   }
-  const Todo = require("../models/Todo");
-  const result = await Todo.updateOne({ _id: task._id, tenantId: task.tenantId,
-    comments: { $elemMatch: { _id: comment._id, comment: comment.comment } } },
-    { $set: { "comments.$.notificationsPending": false } });
+  const result = await Comment.updateOne({ _id: comment._id, tenantId: task.tenantId, taskId: task._id, comment: comment.comment },
+    { $set: { notificationsPending: false } });
   if (!result.matchedCount) {
     // An edit or deletion raced this delivery. Reconcile the current text on
     // the next pass rather than leaving recipients from the stale version.
-    const current = await Todo.updateOne({ _id: task._id, tenantId: task.tenantId, "comments._id": comment._id },
-      { $set: { "comments.$.notificationsPending": true } });
+    const current = await Comment.updateOne({ _id: comment._id, tenantId: task.tenantId, taskId: task._id },
+      { $set: { notificationsPending: true } });
     if (!current.matchedCount) await Notification.deleteMany(scope);
   }
 }
@@ -39,10 +38,11 @@ function startNotificationRetries(logger) {
     if (running) return;
     running = true;
     try {
-      const tasks = await require("../models/Todo").find({ "comments.notificationsPending": true }).select("+comments.notificationsPending").limit(100);
-      for (const task of tasks) for (const comment of task.comments) {
-        if (!comment.notificationsPending) continue;
-        const actor = await Employee.findOne({ _id: comment.author, tenantId: task.tenantId });
+      const comments = await Comment.find({ notificationsPending: true }).select("+notificationsPending").sort({ createdAt: 1 }).limit(100);
+      for (const comment of comments) {
+        const task = await require("../models/Todo").findOne({ _id: comment.taskId, tenantId: comment.tenantId });
+        if (!task) continue;
+        const actor = await Employee.findOne({ _id: comment.author, tenantId: comment.tenantId });
         if (actor) await syncCommentNotifications(task, comment, { id: actor.id, name: actor.name, username: actor.username });
       }
     } catch (err) { logger.error({ err }, "Mention notification retry failed"); }

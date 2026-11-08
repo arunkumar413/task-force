@@ -542,6 +542,7 @@ test("mention notifications persist, isolate recipients and tenants, and synchro
 test("notification failures preserve comments and can be retried without duplicates", async () => {
   const Notification = require("../models/Notification");
   const Todo = require("../models/Todo");
+  const Comment = require("../models/Comment");
   const { syncCommentNotifications } = require("../utils/commentNotifications");
   const created = await admin.post("/api/tasks").send({ title: "Retry mentions" }).expect(201);
   const id = created.body.data.id;
@@ -550,13 +551,14 @@ test("notification failures preserve comments and can be retried without duplica
     Notification.updateOne = async () => { throw new Error("Temporary notification outage"); };
     await admin.post(`/api/tasks/${id}/comments`).send({ comment: "Please review alpha@example.com" }).expect(201);
   } finally { Notification.updateOne = original; }
-  const task = await Todo.findById(id).select("+comments.notificationsPending");
-  assert.equal(task.comments.length, 1);
-  assert.equal(task.comments[0].notificationsPending, true);
-  await syncCommentNotifications(task, task.comments[0], adminUser);
-  await syncCommentNotifications(task, task.comments[0], adminUser);
+  const task = await Todo.findById(id);
+  const comment = await Comment.findOne({ taskId: id }).select("+notificationsPending");
+  assert.ok(comment);
+  assert.equal(comment.notificationsPending, true);
+  await syncCommentNotifications(task, comment, adminUser);
+  await syncCommentNotifications(task, comment, adminUser);
   assert.equal(await Notification.countDocuments({ taskId: id }), 1);
-  const recovered = await Todo.findById(id).select("+comments.notificationsPending");
-  assert.equal(recovered.comments[0].notificationsPending, false);
+  const recovered = await Comment.findOne({ taskId: id }).select("+notificationsPending");
+  assert.equal(recovered.notificationsPending, false);
   await admin.delete(`/api/tasks/${id}`).expect(204);
 });

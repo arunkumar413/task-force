@@ -13,6 +13,7 @@
     "dev:client": "npm --prefix client run dev",
     "dev:server": "npm --prefix server run dev",
     "seed:demo": "npm --prefix server run seed:demo",
+    "migrate:task-activity": "npm --prefix server run migrate:task-activity",
     "build": "npm --prefix client run build",
     "gcp-build": "npm --prefix client install --include=dev && npm --prefix client run build",
     "start": "npm --prefix server start"

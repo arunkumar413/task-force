@@ -8,7 +8,7 @@ import React, { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteTask, postComment, saveTask } from "../store/tasksFilterSlice";
+import { deleteTask, loadTask, postComment, saveTask } from "../store/tasksFilterSlice";
 export function TaskPage() {
   const {
     task_id
@@ -34,6 +34,9 @@ export function TaskPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { hash } = useLocation();
+  useEffect(() => {
+    if (signedIn && task_id) dispatch(loadTask(task_id));
+  }, [dispatch, signedIn, task_id]);
   useEffect(() => {
     if (!task || !hash.startsWith("#comment-")) return;
     const timer = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ block: "center" }), 0);
