@@ -35,6 +35,29 @@ after(async () => {
   if (mongo) await mongo.stop();
 });
 
+test("organization label suggestions persist, deduplicate, and stay tenant scoped", async () => {
+  const owner = request.agent(app);
+  const identity = await register(owner, "label-owner");
+  const other = request.agent(app);
+  await register(other, "label-other");
+  await request(app).get("/api/tasks/labels").expect(401);
+  const created = await owner.post("/api/tasks").send({ title: "Labels", labels: [" Release ", "Release", "", "Backend"] }).expect(201);
+  assert.deepEqual(created.body.data.labels, ["Release", "Backend", "/leadership"]);
+  await Promise.all([1, 2].map(index => owner.post("/api/tasks").send({ title: "Concurrent " + index, labels: ["Shared"] }).expect(201)));
+  await owner.patch("/api/tasks/" + created.body.data.id).send({ labels: ["Edited", "Edited"] }).expect(200);
+  await owner.delete("/api/tasks/" + created.body.data.id).expect(204);
+  const OrganizationLabels = require("../models/OrganizationLabels");
+  const stored = await OrganizationLabels.findOne({ tenantId: identity.tenantId });
+  assert.equal(stored.labels.filter(label => label === "Shared").length, 1);
+  const suggestions = (await owner.get("/api/tasks/labels").expect(200)).body.data;
+  for (const label of ["Release", "Backend", "Edited", "Shared"]) assert.ok(suggestions.includes(label));
+  assert.equal(new Set(suggestions).size, suggestions.length);
+  assert.deepEqual((await other.get("/api/tasks/labels").expect(200)).body.data, []);
+  const Todo = require("../models/Todo");
+  await Todo.create({ title: "Legacy", labels: ["Legacy"], tenantId: identity.tenantId, employee: identity.id, createdBy: identity.id });
+  assert.ok((await owner.get("/api/tasks/labels").expect(200)).body.data.includes("Legacy"));
+});
+
 test("registration creates department, organization, roles, and a password-free session", async () => {
   assert.ok(adminUser.departmentId);
   assert.equal(adminUser.fullAccess, true);

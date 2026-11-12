@@ -12,6 +12,7 @@ const { uploadFiles, cleanupFiles } = require("../utils/taskFileUploads");
 const Notification = require("../models/Notification");
 const { syncCommentNotifications } = require("../utils/commentNotifications");
 const history = require("../utils/taskHistory");
+const { rememberLabels, listLabels } = require("../utils/organizationLabels");
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
 const validId = id => typeof id === "string" && mongoose.isObjectIdOrHexString(id);
@@ -98,6 +99,7 @@ exports.createTask = handle(async (req, res) => {
     await TaskHistory.create({ tenantId: task.tenantId, taskId: task._id, ...history.event(user, "created") });
   } catch (err) { await cleanupFiles(req, uploaded); throw err; }
   await task.populate("employee", "name");
+  await rememberLabels(user.tenantId, task.labels);
   res.status(201).json({ data: await serialize(task, true) });
 });
 exports.updateTask = handle(async (req, res) => {
@@ -116,6 +118,7 @@ exports.updateTask = handle(async (req, res) => {
   await task.validate();
   const changes = history.changes(before, await history.snapshot(task));
   await task.save();
+  await rememberLabels(req.session.user.tenantId, task.labels);
   if (changes.length) await TaskHistory.create({ tenantId: task.tenantId, taskId: task._id, ...history.event(req.session.user, "updated", changes) });
   await task.populate("employee", "name");
   res.json({ data: await serialize(task, true) });
@@ -213,6 +216,9 @@ exports.createView = handle(async (req, res) => {
   res.status(201).json({ data: view });
 });
 exports.taskScope = taskScope;
+exports.listTaskLabels = handle(async (req, res) => {
+  res.json({ data: await listLabels(req.session.user.tenantId) });
+});
 exports.editableFields = editableFields;
 exports.listTaskDepartments = handle(async (req, res) => {
   const departments = await departmentOptions(req.session.user.tenantId);

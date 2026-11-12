@@ -28,11 +28,17 @@ export function TaskForm({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
+  const [organizationLabels, setOrganizationLabels] = useState([]);
   const [lockedLabel, setLockedLabel] = useState(task?.departmentLabel || "");
   const [loadingDepartments, setLoadingDepartments] = useState(auth.isLoggedin);
   useEffect(() => {
     if (!auth.isLoggedin) return;
     const controller = new AbortController();
+    fetch(API_URL + "/tasks/labels", { credentials: "include", signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error("Unable to load organization labels");
+      const { data } = await response.json();
+      setOrganizationLabels(data);
+    }).catch(err => { if (err.name !== "AbortError") setError(err.message); });
     fetch(API_URL + "/tasks/departments", { credentials: "include", signal: controller.signal }).then(async response => {
       if (!response.ok) throw new Error("Unable to load departments");
       const { data: options, defaultLabel } = await response.json();
@@ -86,7 +92,7 @@ export function TaskForm({
       <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Due date<Input type="date" name="dueDate" value={form.dueDate} onChange={change} /></label>
     </div>
     <MarkdownEditor value={form.description} onChange={change} />
-    <LabelsInput value={form.labels} lockedLabel={lockedLabel} onChange={labels => setForm(current => ({ ...current, labels }))} suggestions={departments.map(item => item.path)} disabled={loadingDepartments} />
+    <LabelsInput value={form.labels} lockedLabel={lockedLabel} onChange={labels => setForm(current => ({ ...current, labels }))} suggestions={[...new Set([...organizationLabels, ...departments.map(item => item.path)])]} disabled={loadingDepartments} />
     {!task && (auth.isLoggedin ? <AttachmentPicker files={files} onChange={setFiles} onError={setError} disabled={saving} label="Task attachments" /> : <p className="text-xs text-slate-500">Sign in to upload task attachments.</p>)}
     <div className="flex flex-wrap items-center gap-3"><Button className={buttonStyles.primary.join(" ")} disabled={saving || loadingDepartments}>{saving ? "Saving…" : task ? "Update task" : "Create task"}</Button><Button type="button" onClick={() => navigate(-1)}>Cancel</Button></div>
   </form>;

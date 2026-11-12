@@ -9,6 +9,7 @@ router.get("/notifications", notifications.list);
 router.patch("/notifications/read-all", notifications.readAll);
 router.patch("/notifications/:notificationId/read", notifications.read);
 const allow = action => checkAuthorization({ resource: "task", action });
+router.get("/tasks/labels", checkAuthorization({ permissions: ["task.write", "task.update"] }), tasks.listTaskLabels);
 router.get("/tasks/departments", checkAuthorization({ permissions: ["task.write", "task.update"] }), tasks.listTaskDepartments);
 router.get("/tasks/assignees",
   checkAuthorization({ permissions: ["task.read", "task.write", "task.update"] }),

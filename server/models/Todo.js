@@ -13,7 +13,7 @@ const todoSchema = new Schema({
   status: { type: String, enum: ["Pending", "In progress", "Done", "Backlog", "Cancelled"], default: "Backlog" },
   priority: { type: String, enum: ["Low", "Medium", "High", "Urgent"], default: "Medium" },
   dueDate: { type: Date, default: null },
-  labels: [{ type: String, trim: true, maxlength: 1000 }],
+  labels: { type: [{ type: String, trim: true, maxlength: 1000 }], set: labels => Array.isArray(labels) ? [...new Set(labels.map(label => typeof label === "string" ? label.trim() : label).filter(label => label !== ""))] : labels },
   departmentId: { type: Schema.Types.ObjectId, ref: "Department", default: null },
   departmentLabel: { type: String, default: "", maxlength: 1000 },
   tenantId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
