@@ -58,14 +58,14 @@ export function TaskModal({ isModalOpen, closeModal, selectedTask }) {
                 <h2> {selectedTask.title}</h2>
                 <div className='username-box' style={{ display: 'flex', justifyContet: 'center', flexDirection: 'row', alignItems: 'center' }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="lucide lucide-user">
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user">
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                     <p>  {selectedTask.user}</p>
                 </div>
                 <div className='task-status-box' style={{ display: 'flex', justifyContet: 'center', flexDirection: 'row', alignItems: 'center' }}>
 
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                        strokeLinecap="round" strokeLinejoin="round" class="lucide lucide-list-todo"><rect x="3" y="5" width="6" height="6" rx="1" /><path d="m3 17 2 2 4-4" />
+                        strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-list-todo"><rect x="3" y="5" width="6" height="6" rx="1" /><path d="m3 17 2 2 4-4" />
                         <path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></svg>
                     <p>  {selectedTask.status}</p>
                 </div>

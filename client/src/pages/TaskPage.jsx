@@ -10,6 +10,10 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteTask, loadTask, postComment, saveTask } from "../store/tasksFilterSlice";
 import { buttonStyles } from "../constants";
+import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
+
+
 export function TaskPage() {
   const {
     task_id
@@ -86,47 +90,48 @@ export function TaskPage() {
         </summary>
         <div className="px-6 pb-6">
           {task.subtasks.map((item, index) => <div className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3" key={item._id || item.id || index}>
-            {editingSubtask?.index === index ? 
-            
-            
-            <form className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
-              event.preventDefault();
-              run(saveTask({
-                id: task.id,
-                subtasks: task.subtasks.map((sub, i) => i === index ? {
-                  ...sub,
-                  title: editingSubtask.title.trim()
-                } : sub)
-              }), () => setEditingSubtask(null));
-            }}>
-              <Input aria-label="Subtask title" required value={editingSubtask.title} onChange={e => setEditingSubtask({
-              index,
-              title: e.target.value
-            })} /><Button disabled={busy || !editingSubtask.title.trim()}>Save</Button><Button type="button" onClick={() => setEditingSubtask(null)}>Cancel</Button></form> : <><label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700"><Input type="checkbox" disabled={busy} checked={item.isDone} onChange={event => update({
-              subtasks: task.subtasks.map((sub, i) => i === index ? {
-                ...sub,
-                isDone: event.target.checked
-              } : sub)
-            })} />{item.title}</label>
-              <div className="flex flex-wrap items-center gap-3">
+            {editingSubtask?.index === index ?
 
 
-                <Button className="border-blue-500" disabled={busy} onClick={() => setEditingSubtask({
+              <form className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+                event.preventDefault();
+                run(saveTask({
+                  id: task.id,
+                  subtasks: task.subtasks.map((sub, i) => i === index ? {
+                    ...sub,
+                    title: editingSubtask.title.trim()
+                  } : sub)
+                }), () => setEditingSubtask(null));
+              }}>
+                <Input aria-label="Subtask title" required value={editingSubtask.title} onChange={e => setEditingSubtask({
                   index,
-                  title: item.title
-                })}>
+                  title: e.target.value
+                })} /><Button disabled={busy || !editingSubtask.title.trim()}>Save</Button><Button type="button" onClick={() => setEditingSubtask(null)}>Cancel</Button></form> : <><label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700"><Input type="checkbox" disabled={busy} checked={item.isDone} onChange={event => update({
+                  subtasks: task.subtasks.map((sub, i) => i === index ? {
+                    ...sub,
+                    isDone: event.target.checked
+                  } : sub)
+                })} />{item.title}</label>
+                <div className="flex flex-wrap items-center gap-8">
 
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-pen preview-icon"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg>
 
-                </Button>
+                  <Button className="border-blue-500" disabled={busy} onClick={() => setEditingSubtask({
+                    index,
+                    title: item.title
+                  })}>
+
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-square-pen preview-icon"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg>
+
+                  </Button>
 
 
-                <Button className="border-red-500" disabled={busy} onClick={() => update({
-                  subtasks: task.subtasks.filter((_, i) => i !== index)
-                })}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-trash preview-icon stroke-red-400 hover:stroke-red-500"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>                </Button>
+                  <Button className="border-red-500" disabled={busy} onClick={() => update({
+                    subtasks: task.subtasks.filter((_, i) => i !== index)
+                  })}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash preview-icon stroke-red-400 hover:stroke-red-500"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  </Button>
 
-              </div></>}
+                </div></>}
           </div>)}
           <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
             event.preventDefault();
@@ -142,10 +147,16 @@ export function TaskPage() {
           </form>
         </div>
       </details>
-      <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Comments ({task.comments.length})</h2>
-        {task.comments.map((item, index) => <article id={`comment-${item.id || item._id}`} className="mb-4 border-b border-slate-200 py-4" key={item.id || item._id || index}><p className="text-sm text-slate-500">{item.username || item.email} · {new Date(item.createdAt).toLocaleString()}</p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
-          <CommentAttachments files={item.attachments} />
-        </article>)}
+      <section className="mb-5 rounded-xl">
+        <h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900 p-1">Comments ({task.comments.length})</h2>
+        {task.comments.map((item, index) =>
+          <article id={`comment-${item.id || item._id}`}
+            className="mb-4 border-b border-slate-200 py-4 bg-surface px-4 rounded-xl"
+            key={item.id || item._id || index}>
+            <p className="text-sm text-slate-500">
+              {item.username || item.email} · {format(new Date(item.createdAt), 'yyyy-MMM-dd')} ({formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })})  </p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
+            <CommentAttachments files={item.attachments} />
+          </article>)}
         <form className="space-y-3" onSubmit={event => {
           event.preventDefault();
           run(postComment({
