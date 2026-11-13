@@ -154,7 +154,7 @@ export function TaskPage() {
             className="mb-4 border-b border-slate-200 py-4 bg-surface px-4 rounded-xl"
             key={item.id || item._id || index}>
             <p className="text-sm text-slate-500">
-              {item.username || item.email} · {format(new Date(item.createdAt), 'yyyy-MMM-dd')} ({formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })})  </p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
+              {item.username || item.email} · {format(new Date(item.createdAt), 'PPpp')} ({formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })})  </p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
             <CommentAttachments files={item.attachments} />
           </article>)}
         <form className="space-y-3" onSubmit={event => {
