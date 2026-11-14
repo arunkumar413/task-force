@@ -1,6 +1,15 @@
 # Task Force
 
-Task Force is a task management application with a React client and an Express API. Organizations, employees, departments, resource permissions, and sessions use MongoDB. Account and organization features were adapted from [webpack-react-express-template](https://github.com/arunkumar413/webpack-react-express-template).
+Task force is a professional grade task management application focussing the ease of use, simplicity and yet packed with features. We believe that a tool in itself shouldn't be burnden in doing our work in professional lives. Most task managemnt tools such as Jira just reflect the organizational complicance process in the UI. Task force, in contrast lays the emphasis on how the user can effectively manage, document, list down, view, orgaize, convey and configure the tasks uisng an elegant thoughfully crafted UI/UX.
+
+Organizations, employees, departments, resource permissions, and sessions use MongoDB. Account and organization features were adapted from [webpack-react-express-template](https://github.com/arunkumar413/webpack-react-express-template).
+
+## Screenshots
+
+![Home page](/screenshots/home-page.png)	
+![Task page](/screenshots/task-page.png)
+![New task page](/screenshots/new-task-page.png)
+
 
 ## Run locally
 
