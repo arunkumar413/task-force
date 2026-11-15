@@ -1,80 +1,188 @@
-const { pool } = require("../DBConfig");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
+// Use the same expensive comparison when an account does not exist.
+const dummyHash = bcrypt.hashSync("unused-random-comparison-value", 10);
+const invalidLogin = res => res.status(401).json({ statusMessage: "Invalid email, password, or organization" });
+const Employee = require("../models/Employee");
+const Organization = require("../models/Organization");
+const { slugify, buildSessionUser } = require("../utils/authSession");
+const {
+  forgetSession,
+  upsertAuthSession,
+} = require("../utils/sessionRegistry");
+const {
+  provisionOrganization,
+  createOrgAdmin,
+} = require("../utils/organizationService");
+
+function saveSessionUser(req, sessionUser, res, status, payload) {
+  const previousSid = req.sessionID;
+
+  req.session.regenerate(function (err) {
+    if (err) {
+      return res.status(500).json({ statusMessage: "Session save failed" });
+    }
+
+    req.session.user = sessionUser;
+    req.session.save(function (saveErr) {
+      if (saveErr) {
+        return res.status(500).json({ statusMessage: "Session save failed" });
+      }
+
+      Promise.resolve()
+        .then(function () {
+          if (previousSid && previousSid !== req.sessionID) {
+            return forgetSession(previousSid);
+          }
+        })
+        .then(function () {
+          return upsertAuthSession(req, { force: true });
+        })
+        .then(function () {
+          res.status(status).json(payload);
+        })
+        .catch(function (registryErr) {
+          console.log(registryErr);
+          res.status(status).json(payload);
+        });
+    });
+  });
+}
 
 module.exports.registerController = async function (req, res) {
-  const saltRounds = 10;
-  const client = await pool.connect();
+  const {
+    username,
+    email,
+    password,
+    organizationName,
+    topLevelDepartmentName,
+  } = req.body;
 
-  const salt = await bcrypt.genSalt(saltRounds);
-  const hash = await bcrypt.hash(req.body.password, salt);
+  if (!username || !email || !password) {
+    return res.status(400).json({
+      statusMessage: "username, email, and password are required",
+    });
+  }
+
+  if (typeof username !== "string" || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      typeof password !== "string" || password.length < 8 ||
+      (req.body.confirmPassword !== undefined && password !== req.body.confirmPassword)) {
+    return res.status(400).json({ statusMessage: "Use a valid email and matching passwords of at least 8 characters" });
+  }
+
+  const orgName = organizationName || `${username}'s organization`;
 
   try {
-    await client.query("BEGIN");
-    const queryText =
-      "insert into users (username,password,email) values($1,$2,$3)";
-    const result = await client.query(queryText, [
-      req.body.username,
-      hash,
-      req.body.email,
-    ]);
-    await client.query("COMMIT");
-    res.status(201).json(result.rows);
+    const { organization, adminRole, department } = await provisionOrganization({
+      name: orgName,
+      topLevelDepartmentName,
+      allowSlugCollision: true,
+    });
+
+    const employee = await createOrgAdmin({
+      organization,
+      adminRole,
+      department,
+      username,
+      email,
+      password,
+    });
+
+    const sessionUser = await buildSessionUser(employee);
+
+    saveSessionUser(req, sessionUser, res, 201, {
+      statusMessage: "Registration success",
+      data: {
+        ...sessionUser,
+        organizationSlug: organization.slug,
+        organizationName: organization.name,
+      },
+    });
   } catch (err) {
-    await client.query("ROLLBACK");
     console.log(err);
-  } finally {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        statusMessage: "Email, username, or organization already exists",
+      });
+    }
+    res.status(400).json({ statusMessage: "Registration failed" });
   }
 };
 
 module.exports.loginController = async function (req, res) {
-  const client = await pool.connect();
-
   try {
-    await client.query("BEGIN");
-    const queryText = "select * from users where email=$1";
-    const result = await client.query(queryText, [req.body.email]);
-    await client.query("COMMIT");
+    const email = typeof req.body.email === "string" ? req.body.email.toLowerCase().trim() : "";
+    const { password, organizationSlug } = req.body;
 
-    let passwordCheckStatus = await bcrypt.compare(
-      req.body.password,
-      result.rows[0].password
-    );
-
-    if (passwordCheckStatus === true) {
-      // get user roles
-      await client.query("BEGIN");
-
-      let queryText = `select roles.name from users 
-      join user_roles on users.id=user_roles.user_id
-      join roles on roles.id=user_roles.role_id where users.email=$1`;
-
-      let userRolesObj = await client.query(queryText, [req.body.email]);
-      await client.query("COMMIT");
-
-      let userRolesArr = userRolesObj.rows.map(function (item) {
-        return item.name;
+    if (!email || email.length > 320 || typeof password !== "string" || !password || typeof organizationSlug !== "undefined" && typeof organizationSlug !== "string") {
+      return res.status(400).json({
+        statusMessage: "email and password are required",
       });
+    }
 
-      let userObj = { ...result.rows[0] };
-      delete userObj.password; // remove password from userObj to store in the session
-      userObj.roles = userRolesArr;
+    let employee;
 
-      req.session.user = userObj;
-      req.session.save(function (err) {
-        res.json({ statusMessage: "Login success", data: userObj });
+    if (organizationSlug) {
+      const organization = await Organization.findOne({
+        slug: slugify(organizationSlug),
+      });
+      if (!organization) {
+        await bcrypt.compare(password, dummyHash);
+        return invalidLogin(res);
+      }
+      employee = await Employee.findOne({
+        tenantId: organization._id,
+        email,
+        isActive: true,
       });
     } else {
-      res.status(401).send({ statusMessage: "Password didn't match" });
+      const matches = await Employee.find({ email, isActive: true });
+      if (matches.length > 1) {
+        await bcrypt.compare(password, dummyHash);
+        return invalidLogin(res);
+      }
+      employee = matches[0];
     }
+
+    const passwordCheckStatus = await bcrypt.compare(
+      password,
+      employee?.password || dummyHash
+    );
+
+    if (!employee || employee.mustSetPassword || !passwordCheckStatus) {
+      return invalidLogin(res);
+    }
+
+    const sessionUser = await buildSessionUser(employee);
+    const organization = await Organization.findById(employee.tenantId).lean();
+
+    saveSessionUser(req, sessionUser, res, 200, {
+      statusMessage: "Login success",
+      data: {
+        ...sessionUser,
+        organizationSlug: organization?.slug,
+        organizationName: organization?.name,
+      },
+    });
   } catch (err) {
-    await client.query("ROLLBACK");
     console.log(err);
-  } finally {
+    res.status(500).json({ statusMessage: "Login failed" });
   }
 };
 
 module.exports.logoutController = async function (req, res) {
+  const sessionId = req.sessionID;
   req.session.destroy(function (err) {
+    if (err) {
+      return res.status(500).json({ statusMessage: "Logout failed" });
+    }
+    forgetSession(sessionId).catch(function (forgetErr) {
+      console.log(forgetErr);
+    });
     res.status(200).json({ statusMessage: "Logout success" });
   });
 };
+
+module.exports.getSessionController = async function (req, res) {
+  res.json({ data: req.session.user });
+};
+

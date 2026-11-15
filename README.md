@@ -2,166 +2,218 @@
 
 Task force is a professional grade task management application focussing the ease of use, simplicity and yet packed with features. We believe that a tool in itself shouldn't be burnden in doing our work in professional lives. Most task managemnt tools such as Jira just reflect the organizational complicance process in the UI. Task force, in contrast lays the emphasis on how the user can effectively manage, document, list down, view, orgaize, convey and configure the tasks uisng an elegant thoughfully crafted UI/UX.
 
-Tech stack:
+Organizations, employees, departments, resource permissions, and sessions use MongoDB. Account and organization features were adapted from [webpack-react-express-template](https://github.com/arunkumar413/webpack-react-express-template).
 
-1. React
-2. Express
-3. Serene UI( https://github.com/arunkumar413/serene-UI)
-4. Nodejs
+## Screenshots
 
-## directory structure
+![Home page](/screenshots/home-page.png)	
+![Task page](/screenshots/task-page.png)
+![New task page](/screenshots/new-task-page.png)
 
-```
-├── client
-│   ├── dist
-│   │   ├── bundle.js
-│   │   ├── bundle.js.LICENSE.txt
-│   │   └── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── src
-│   │   ├── App.js
-│   │   ├── index.html
-│   │   └── index.js
-│   └── webpack.config.js
-├── LICENSE
-├── README.md
-└── server
-    ├── index.js
-    ├── package.json
-    └── package-lock.json
 
-4 directories, 14 files
+## Run locally
 
-```
+Requires Node.js 22 or newer and MongoDB (local or Atlas).
 
-Installation
+1. Copy `server/.env.example` to `server/.env`. Set `MONGODB_URI` and a random `SESSION_SECRET`.
+2. Run `npm install` from the repository root.
+3. Run `npm run dev`.
 
-1. Clone the repo
-2. `cd client`
-3. Create a `.env` file and set REACT_APP_API_URL=http://localhost:3000/api
-4. `npm install` to install the dependencies
-5. `npm run serve` to run the app in development mode
-6. The app will be served on http://localhost:3030/
-7. `npm run build` to build the app for production
+The client runs at http://localhost:3031 and proxies `/api` to the server at http://localhost:3000. The client defaults to a relative API URL; optionally configure `client/.env` using `client/.env.example`.
 
-Installing the express server
+Build with `npm run build`. Run `NODE_ENV=production npm start` to serve the UI and API together. Production requires `SESSION_SECRET`; set `APP_ORIGIN` to the exact public HTTPS origin when needed for cross-origin access. `PORT` supports managed hosting, including Cloud Run source deployments using `gcp-build`.
 
-1. `cd server`
-2. `npm install`
-3. `node index.js` to start the server
-4. The api will be served at http://localhost:3000/api and the front end bundled app will be served at http://localhost:3000/
+## Demo task data
 
-## DB Models:
+The client imports the 22 records in `server/dummyData/fakeTaskDataInsertIntoDB.js` directly. The adapter in `client/src/store/tasks.js` maps `due_date` to `dueDate`, adds stable demo IDs, and maps the original numeric creators to demo users. Original descriptions, statuses, priorities, and historical dates are preserved. Past dates appear under **Overdue**.
 
-````sql
-CREATE TYPE public.task_status_enum AS ENUM (
-'Pending',
-'Done',
-'In progress'
-);```
+While signed out, tasks and saved views run in a clearly marked demo workspace and persist in browser local storage. They do not write to the organization database. Signing in loads the organization's MongoDB tasks; signing out returns to the demo workspace.
 
-````
+To seed the same dataset into MongoDB, run:
 
-users table:
-
-```sql
-
-CREATE TABLE public.users (
-    id integer serial NOT NULL,
-    username character varying(100) NOT NULL,
-    password character varying(255) NOT NULL,
-    email character varying(255) NOT NULL,
-    PRIMARY KEY (id)
-);
-
+```sh
+npm run seed:demo
 ```
 
-table user_roles:
+**This command replaces the existing `acme` demo organization and its tasks, employees, views, departments, and role grants.** It leaves other organizations alone. The legacy `server/dummyData/InsertData.js` delegates to this MongoDB seeder.
 
-```sql
-CREATE TABLE public.user_roles (
-    user_id integer NOT NULL,
-    role_id integer NOT NULL
-);
+Use organization slug `acme` and password `demo123`:
+
+| Role | Email |
+| --- | --- |
+| Admin | ava.chen@acme.example |
+| Manager | marcus.webb@acme.example |
+| Employee | liam.ortiz@acme.example |
+| HR | sam.okonkwo@acme.example |
+
+The dataset's original creator IDs 1, 2, and 3 map to Ava, Marcus, and Liam respectively.
+
+## Features
+
+- Task creation, editing, deletion, search, priority/status filters, and due-date grouping.
+- Markdown descriptions and comments, subtasks with completion state, labels, and HTTP(S) attachment links. Attachment file uploads are not implemented.
+- Personal saved views with priority, status, label, and assignee filters.
+- Organization registration, tenant-aware login, cookie sessions, and server-validated authentication on reload.
+- Profiles, department and manager hierarchies, bulk employee invitations, and invite acceptance.
+- Role/resource permission management and permission revocation on existing sessions.
+- Multiple device sessions and OTP password changes that sign out other devices.
+- Tailwind styling and light, dark, and system themes.
+- All active screens use Tailwind utilities. Shared form controls live in `client/src/components/FormControls.jsx`; `client/src/index.css` contains only Tailwind setup and theme tokens.
+- Structured request logging without authentication request bodies.
+
+Configure `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` for invitation and password emails. Without SMTP, development codes are printed to the server console.
+
+## Architecture and models
+
+- `client/src/AppRouter.js`: task routes share the workspace layout; account/profile screens are loaded on demand.
+- `client/src/store`: Redux authentication, API responses, tasks, and saved views. The task store selects the local demo or authenticated API.
+- `server/index.js`: Express application, MongoDB sessions, account/organization routes, static client hosting, and JSON API errors.
+- `server/routes/router.js`: task and saved-view routes with authentication and resource/action authorization.
+- `server/models`: Mongoose models for Organization, Department, Employee, Role, RoleAssignment, Resource, Permission, AuthSession, PasswordOtp, Todo, and TaskView.
+
+`Todo` represents a Task Force task: tenant, creator, assignee, title, description, due date, priority, status, labels, embedded comments, attachment links, and subtasks. Supported statuses are Pending, In progress, Done, Backlog, and Cancelled; priorities are Low, Medium, High, and Urgent.
+
+All task queries are scoped to the signed-in tenant. Administrators can access organization tasks; other employees can access tasks assigned to themselves or their reports, and tasks they created. Assignments can target any active employee in that tenant. Create and edit forms search the organization directory by name, email, or username. Resource permissions independently control each action.
+
+Email changes require the current password and rotate the session while invalidating outstanding verification codes. Authentication limits use shared MongoDB counters over 15-minute fixed windows: 10 login attempts per normalized email, 100 per client IP, 20 registrations per IP, and 10 profile updates per employee. Successful attempts count toward these limits. Exceeded limits return HTTP 429 with `Retry-After`. In production, configure the trusted reverse proxy to strip client-supplied forwarded headers and supply the real client IP.
+
+The existing Labels field on create/edit task forms uses chips: type a string and press Enter to add it (commas stay part of the string). New tasks preselect the creator's current department path, such as `/engineering/backend`, in this same field; organization department paths are suggested alongside free-text entry. Paths use lowercase segments, with whitespace converted to hyphens. Labels are stored as strings in the task's labels array. The default department label is marked Required and cannot be removed; custom labels remain removable. The server always adds the creator's department label on creation and preserves the task's stored department label on updates, including direct API requests. Its department metadata remains tied to that original default rather than other labels or the editing user's department. Existing tasks are not automatically backfilled; future demo seeding uses slash-format labels.
+
+Saved views belong to a tenant and employee. MongoDB sessions are stored separately from device-session metadata; passwords and OTPs are hashed. There is no PostgreSQL dependency. Existing PostgreSQL records are not automatically migrated.
+
+## Task API
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET / POST | `/api/tasks` | List accessible tasks / create a task |
+| GET / PATCH / DELETE | `/api/tasks/:taskId` | Read / update / delete a task |
+| POST | `/api/tasks/:taskId/comments` | Add a comment |
+| GET | `/api/mytasks` | Tasks assigned to the current employee |
+| GET | `/api/task-data/:taskId` | Compatibility alias for task detail |
+| GET / POST | `/api/views` | List / create personal saved views |
+
+Task and view responses use `{ data: ... }`; errors use `{ statusMessage: ... }`. Include session cookies for authenticated API requests. The client API helper additionally stores account/organization responses in Redux under `state.api[key]`.
+
+## Validation
+
+`npm test` runs API integration tests against an isolated temporary MongoDB instance using mongodb-memory-server. The first run may download its MongoDB binary. Tests cover registration, sessions, permissions, tenant boundaries, task persistence and validation, invitations, saved views, password changes, and the supplied dataset.
+
+`npm run build` validates and builds the production client.
+
+For browser tests, run `npx playwright install chromium --only-shell`, then `npm run build` and `npm run test:ui`. Playwright starts a separate app on port 3040 with a temporary MongoDB database and seeded demo accounts.
+
+### Garage / S3 comment attachments
+
+#### Install Garage for local development
+
+1) Install docker and check the version
+
+```bash
+docker info
+docker compose version
+```
+2) Create a directory for installing and running garage
+```bash
+mkdir -p "$HOME/garage-local"
+cd "$HOME/garage-local"
 ```
 
-table roles:
+3) Create a garage.toml file
 
-```sql
-CREATE TABLE public.roles (
-    id integer NOT NULL,
-    name character varying(100) NOT NULL
-);
+```bash
+cat > garage.toml <<EOF
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "0.0.0.0:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "$(openssl rand -hex 32)"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "0.0.0.0:3900"
+root_domain = ".s3.garage.localhost"
+public_endpoint = "http://localhost:3900"
+public_endpoint_path_style = true
+EOF
+```
+4) `chmod 600 garage.toml`
+5) Create a `.env` file
+
+```bash
+cat > .env <<EOF
+GARAGE_DEFAULT_ACCESS_KEY=GK$(openssl rand -hex 16)
+GARAGE_DEFAULT_SECRET_KEY=$(openssl rand -hex 32)
+GARAGE_DEFAULT_BUCKET=dev-uploads
+EOF
 ```
 
-table permissions:
+6) `chmod 600 .env`
+7) Create a docker compose file 
+```bash
+cat > compose.yaml <<'EOF'
+services:
+  garage:
+    image: dxflrs/garage:v2.5.0
+    platform: linux/arm64
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3900:3900"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
 
-```sql
-CREATE TABLE public.permissions (
-    id integer NOT NULL,
-    role_id integer,
-    resource_id integer,
-    read boolean NOT NULL,
-    write boolean NOT NULL,
-    update boolean NOT NULL,
-    delete boolean NOT NULL
-);
+volumes:
+  garage-meta:
+  garage-data:
+EOF
+```
+8) Run the docker command: `docker compose up -d`
+9) You may run `docker compose logs --tail=100 garage` to check the logs 
+10) Check the node and bucket
+
+```bash
+docker compose exec garage /garage status
+docker compose exec garage /garage bucket info dev-uploads
 ```
 
-table resources:
 
-```sql
-CREATE TABLE public.resources (
-    id integer NOT NULL,
-    name character varying(100) NOT NULL,
-    description character varying(100)
-);
+
+Signed-in users can select up to five files (10 MB each) while composing a Markdown comment. Selection is local until **Add comment** is pressed. The server authorizes task access, validates the comment, uploads the files, then saves their names, sizes, object keys/bucket and stable download links in `comments[].attachments[]`. Failed upload/database operations attempt to remove objects already uploaded for that comment; the draft remains available to retry. Storage is not required for text-only comments.
+
+Configure these values in `server/.env`:
+
+```dotenv
+S3_ENDPOINT=http://127.0.0.1:3900
+S3_REGION=garage
+S3_BUCKET=dev-uploads
+S3_ACCESS_KEY_ID=your-garage-key-id
+S3_SECRET_ACCESS_KEY=your-garage-secret
+PUBLIC_APP_URL=http://localhost:3031
 ```
 
-constraints:
+The existing `GARAGE_DEFAULT_BUCKET`, `GARAGE_DEFAULT_ACCESS_KEY`, and `GARAGE_DEFAULT_SECRET_KEY` names are supported as fallbacks; `S3_*` values take precedence. The endpoint and region default to the values shown. Set `PUBLIC_APP_URL` to the browser-facing application origin in deployments; otherwise links use the incoming request's origin. Restart the server after changing configuration.
 
-```sql
-ALTER TABLE ONLY public.users
-	ADD CONSTRAINT unique_email UNIQUE (email);
+Use an existing private bucket with read/write/delete access for the application's key. The SDK uses path-style requests for Garage compatibility; see [Garage's S3 integration guidance](https://garagehq.deuxfleurs.fr/documentation/connect/apps/). Credentials stay on the server. Files pass through the application, so Garage bucket CORS and public website access are unnecessary. Stored links point to authenticated application downloads rather than expiring signed URLs. Downloads enforce task read permission and tenant/task scope and serve files as attachments with `nosniff`.
 
-ALTER TABLE ONLY public.users
-	ADD CONSTRAINT users_username_key UNIQUE (username);
+Uploads use `POST /api/tasks/:taskId/comments` with multipart fields `comment` and repeated `files`; existing JSON comments and external attachment links remain supported. Downloads use `GET /api/tasks/:taskId/comments/:commentId/attachments/:attachmentId`. Task/comment attachments remain distinct. Demo workspace comments remain text-only; sign in to upload real files. Storage integration tests use a fake adapter for deterministic failure/access checks; a live Garage roundtrip was also verified using temporary files and a temporary database.
 
+Cleanup is best-effort: process crashes or object storage cleanup failures can leave orphaned objects. Deleting an entire task currently deletes its database record without purging stored files; use bucket lifecycle/maintenance appropriate to your retention policy.
 
-ALTER TABLE ONLY public.user_roles
-	ADD CONSTRAINT user_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id);
+Signed-in users can also select up to five task attachments (10 MB each) on **Create new task**. Files upload on creation; the task is saved only after uploads succeed. Storage or database failures attempt cleanup and keep the create form available to retry. `POST /api/tasks` accepts multipart data with a `task` JSON field and repeated `files` fields; JSON task creation remains supported. Private task downloads use `GET /api/tasks/:taskId/attachments/:attachmentId` with the same access checks as comment downloads. Task attachments are separate from comment attachments and appear in the Attachments tab; **View images** opens the same stable-size image carousel.
 
+The task page uses an extensible tab component for **Subtasks**, **Comments**, and **Attachments**, with counts, arrow/Home/End keyboard navigation, and retained drafts when switching tabs. The subtasks accordion remains inside its panel. The Attachments tab contains task download links, removal controls, the link form, and image carousel access.
 
-ALTER TABLE ONLY public.user_roles
-	ADD CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+### Task history
 
+The task page's **History** tab shows changes newest first, including the editor's name, timestamp, and before/after values for title, description, priority, status, due date, assignee, labels, subtasks, and task attachments. Creation and comment additions (including comment attachment names) are also recorded. History is embedded in the task record and follows its existing read-access rules. Actor names are snapshots so attribution remains readable after profile changes.
 
-ALTER TABLE ONLY public.roles
-	ADD CONSTRAINT roles_name_key UNIQUE (name);
+The server generates history records; API callers cannot supply or replace them through task fields. No-op edits do not add records. Task edits and their history save together with optimistic concurrency; a stale save returns HTTP 409 rather than replacing another user's changes. Comments and their history entries append atomically. Failed validation, uploads, or database writes do not produce history records. Deleting a task deletes its embedded history as well.
 
-ALTER TABLE ONLY public.roles
-	ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
-
-
-ALTER TABLE ONLY public.permissions
-	ADD CONSTRAINT permissions_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.permissions
-	ADD CONSTRAINT unique_permission_role_resource UNIQUE (role_id, resource_id);
-
-
-ALTER TABLE ONLY public.permissions
-	ADD CONSTRAINT permissions_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.resources(id);
-
-ALTER TABLE ONLY public.permissions
-	ADD CONSTRAINT permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id);
-
-
-ALTER TABLE ONLY public.resources
-	ADD CONSTRAINT resources_name_key UNIQUE (name);
-
-ALTER TABLE ONLY public.resources
-	ADD CONSTRAINT resources_pkey PRIMARY KEY (id);
-
-```
+Existing tasks start with empty history and record subsequent changes; earlier changes are not reconstructed. Future demo seeding includes a creation record for each task. The signed-out demo workspace also tracks subsequent edits locally. Like embedded comments, history is subject to MongoDB's document-size limit; it is an application change timeline, not an independently retained compliance audit log.

@@ -1,12 +1,19 @@
-const pg = require("pg");
-const { Pool } = pg;
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const path = require("path");
+dotenv.config({ path: path.join(__dirname, ".env") });
 
-module.exports.pool = new Pool({
-  host: "localhost",
-  user: "postgres",
-  password: "postgres",
-  database: "rbac",
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000
-});
+const MONGODB_URI =
+  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/task-force";
+
+async function connectDB() {
+  mongoose.set("strictQuery", true);
+  await mongoose.connect(MONGODB_URI);
+  console.log("MongoDB connected");
+}
+
+module.exports = {
+  connectDB,
+  MONGODB_URI,
+};
+

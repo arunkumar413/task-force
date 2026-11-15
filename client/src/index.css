@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* Theme tokens only. Components and layout use Tailwind utilities in JSX. */
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: var(--theme-primary);
+  --color-primary-hover: var(--theme-primary-hover);
+  --color-surface: var(--theme-surface);
+  --color-slate-50: var(--theme-canvas);
+  --color-slate-100: var(--theme-muted);
+  --color-slate-200: var(--theme-border);
+  --color-slate-300: var(--theme-control-border);
+  --color-slate-400: var(--theme-subtle);
+  --color-slate-500: var(--theme-secondary);
+  --color-slate-600: var(--theme-secondary);
+  --color-slate-700: var(--theme-text);
+  --color-slate-800: var(--theme-heading);
+  --color-slate-900: var(--theme-heading);
+}
+
+:root {
+  color-scheme: light;
+  /* --theme-primary: #4f46e5; */
+    --theme-primary:rgb(0,113,227);
+  /* --theme-primary-hover: #4338ca; */
+  --theme-primary-hover: #0076DF;
+  --theme-surface: #ffffff;
+  --theme-canvas: #f5f6fb;
+  --theme-muted: #eef0f8;
+  --theme-border: #e3e6f0;
+  --theme-control-border: #cbd1e2;
+  --theme-subtle: #707b94;
+  --theme-secondary: #59647c;
+  --theme-text: #1e1e1e;
+  --theme-heading: #202b43;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --theme-primary: #6366f1;
+  --theme-primary-hover: #4f46e5;
+  --theme-surface: #1b2235;
+  --theme-canvas: #121827;
+  --theme-muted: #242d43;
+  --theme-border: #303a52;
+  --theme-control-border: #46516b;
+  --theme-subtle: #9aa7c0;
+  --theme-secondary: #b0bbd0;
+  --theme-text: #d0d8e9;
+  --theme-heading: #f0f3fb;
+}

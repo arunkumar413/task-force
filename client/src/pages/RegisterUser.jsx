@@ -81,7 +81,7 @@ export function RegisterUser() {
           name="confirmPassword"
         />
       </div>
-      <button onClick={handleRegister}>Register</button>
+      <button className="text-lg" onClick={handleRegister}>Register</button>
     </div>
   );
 }

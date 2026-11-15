@@ -1,0 +1,14 @@
+.git
+.gitignore
+.gcloudignore
+.cursor
+.DS_Store
+**/.DS_Store
+**/.env
+**/.env.*
+node_modules
+client/node_modules
+server/node_modules
+client/dist
+npm-debug.log
+

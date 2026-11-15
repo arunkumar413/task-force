@@ -1,4 +1,8 @@
-const { endOfTomorrow, addWeeks, addMonths, add } = require("date-fns");
+const addWeeksModule = require("date-fns/addWeeks");
+const addModule = require("date-fns/add");
+// Webpack resolves date-fns' ESM entry; Node resolves its CommonJS entry.
+const addWeeks = addWeeksModule.default || addWeeksModule;
+const add = addModule.default || addModule;
 
 module.exports.fakeTaskData = [
   {

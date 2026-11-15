@@ -1,260 +1,47 @@
+import { Input, Button } from "../components/FormControls";
+import { MultiAssigneeSelect } from "../components/MultiAssigneeSelect";
 import React, { useState } from "react";
-import {
-  ALL_LABELS,
-  PRIORITY_OPTIONS,
-  STATUS_OPTIONS,
-  USERS,
-} from "../constants";
-
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { saveView } from "../store/tasksFilterSlice";
+import { buttonStyles } from "../constants";
 export function CreateViewPage() {
-  const [priorityOptions, setPriority] = useState(PRIORITY_OPTIONS);
-  const [statusOptions, setStatus] = useState(STATUS_OPTIONS);
-  const [searchLabel, setSearchLabel] = useState("");
-  const [selectedLabels, setSelectedLabels] = useState([]);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [searchUserTerm, setUserSearchTerm] = useState("");
-
-  function handlePrioritySelection(evt, index) {
-    let newState = priorityOptions.map(function (item, prevIndex) {
-      if (index === prevIndex) {
-        return { ...item, selected: item.selected === true ? false : true };
-      } else {
-        return item;
-      }
-    });
-
-    setPriority(newState);
-  }
-
-  function handleStatusSelection(evt, index) {
-    let newState = statusOptions.map(function (item, prevIndex) {
-      if (index === prevIndex) {
-        return { ...item, selected: item.selected === true ? false : true };
-      } else {
-        return item;
-      }
-    });
-    setStatus(newState);
-  }
-
-  const priorityElements = priorityOptions.map(function (item, index) {
-    return (
-      <label htmlFor={item.option} key={item.option}>
-        <input
-          style={{ marginRight: "0.2rem" }}
-          className="ser-checkbox-primary-small"
-          onChange={(evt) => handlePrioritySelection(evt, index)}
-          type="checkbox"
-          // id="Low"
-          name={item.option}
-          checked={item.selected}
-        />
-        {item.option}
-      </label>
-    );
-  });
-
-  const statusElements = statusOptions.map(function (item, index) {
-    return (
-      <label htmlFor={item.option} key={item.option}>
-        <input
-          style={{ marginRight: "0.2rem" }}
-          className="ser-checkbox-primary-small"
-          onChange={(evt) => handleStatusSelection(evt, index)}
-          type="checkbox"
-          // id="Low"
-          name={item.option}
-          checked={item.selected}
-        />
-        {item.option}
-      </label>
-    );
-  });
-
-  function handleLabelInput(evt) {
-    setSearchLabel(evt.target.value);
-  }
-
-  function handleSelectLabel(evt, newItem) {
-    if (!selectedLabels.some((item) => item.name === newItem.name)) {
-      setSelectedLabels((prevArray) => [...prevArray, newItem]);
+  const [name, setName] = useState("");
+  const [priorities, setPriorities] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+  const [labels, setLabels] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const auth = useSelector(state => state.auth);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const toggle = (value, values, set) => set(values.includes(value) ? values.filter(item => item !== value) : [...values, value]);
+  async function submit(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const view = await dispatch(saveView({
+        name,
+        priorities,
+        statuses,
+        labels: labels.split(",").map(value => value.trim()).filter(Boolean),
+        employees: selectedEmployees.map(employee => String(employee.id || employee._id))
+      })).unwrap();
+      navigate("/view/" + view.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
-
-  function handleSelectUser(evt, newItem) {
-    if (!selectedUsers.some((item) => item.email === newItem.email)) {
-      setSelectedUsers((prevArray) => [...prevArray, newItem]);
-    }
-  }
-
-  const labelsFound = ALL_LABELS.filter(function (item, index) {
-    return item.name.includes(searchLabel);
-  });
-
-  const usersFound = USERS.filter(function (item, index) {
-    return (
-      item.firstName.includes(searchUserTerm) ||
-      item.lastName.includes(searchUserTerm) ||
-      item.email.includes(searchUserTerm)
-    );
-  });
-
-  const labelElements = labelsFound.map(function (item, index) {
-    return (
-      <div
-        className="search-label-element"
-        key={item.name}
-        onClick={(evt) => handleSelectLabel(evt, item)}
-        style={{ padding: "0.3rem" }}
-      >
-        {item.name}
-      </div>
-    );
-  });
-
-  function handleDeleteLabel(evt, clickedItem) {
-    let newState = selectedLabels.filter(function (item, index) {
-      return item.name !== clickedItem.name;
-    });
-    setSelectedLabels(newState);
-  }
-
-  function handleDeleteUser(evt, clickedItem) {
-    let newState = selectedUsers.filter(function (item, index) {
-      return item.email !== clickedItem.email;
-    });
-    setSelectedUsers(newState);
-  }
-
-  const selectedLabelElements = selectedLabels.map(function (item, index) {
-    return (
-      <button
-        style={{ cursor: "not-allowed" }}
-        onClick={(evt) => handleDeleteLabel(evt, item)}
-        key={item.name}
-        className="ser-btn-primary-small ser-round"
-      >
-        {item.name}
-      </button>
-    );
-  });
-
-  const selectedUserElements = selectedUsers.map(function (item, index) {
-    return (
-      <button
-        style={{ cursor: "not-allowed" }}
-        onClick={(evt) => handleDeleteUser(evt, item)}
-        key={item.email}
-        className="ser-btn-primary-small ser-round"
-      >
-        {item.email}
-      </button>
-    );
-  });
-
-  const userElements = usersFound.map(function (item, index) {
-    return (
-      <div
-        className="search-label-element"
-        key={item.id.toString()}
-        onClick={(evt) => handleSelectUser(evt, item)}
-        style={{ padding: "0.3rem" }}
-      >
-        {`${item.firstName} ${item.lastName} (${item.email})`}
-      </div>
-    );
-  });
-
-  function handleUserSearchInput(evt) {
-    setUserSearchTerm(evt.target.value);
-  }
-
-  return (
-    <div>
-      <div className="create-view-page-header">
-        <h2>Create new view </h2>
-        <button className="ser-btn-primary-small ser-round"> Save</button>
-      </div>
-      <div className="create-view-page-selection-container">
-        <label>
-          <h3> View name </h3>
-          <input
-            className="ser-input-normal-small-outlined"
-            placeholder="Enter a name for the view"
-          />
-        </label>
-      </div>
-      <div
-        className="test2"
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}
-      >
-        <div className="create-view-page-selection-container">
-          <h3> Select priority</h3>
-          <div style={{ display: "flex", gap: "1.5rem" }}>
-            {priorityElements}
-          </div>
-        </div>
-        <div className="create-view-page-selection-container">
-          <h3> Select status</h3>
-          <div style={{ display: "flex", gap: "1.5rem" }}>{statusElements}</div>
-        </div>
-      </div>
-
-      <div
-        className="test"
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}
-      >
-        <div className="create-view-page-selection-container">
-          <h3> Labels</h3>
-          <input
-            className="ser-input-normal-small-outlined"
-            placeholder="Search for a label"
-            onChange={handleLabelInput}
-          />
-          {/* <h5> Labels found</h5> */}
-          <div className="search-labels-contianer">{labelElements}</div>
-
-          <h3>Selected labels</h3>
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            {selectedLabelElements}
-          </div>
-        </div>
-
-        <div className="create-view-page-selection-container">
-          <h3> Users</h3>
-          <input
-            className="ser-input-normal-small-outlined"
-            placeholder="Search for a user"
-            onChange={handleUserSearchInput}
-          />
-          {/* <h5> Labels found</h5> */}
-          <div className="search-labels-contianer">{userElements}</div>
-          <h3>Selected users</h3>
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            {selectedUserElements}
-          </div>
-        </div>
-      </div>
-
-      {/* <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          justifyContent: "center",
-        }}
-      >
-        <div className="create-view-page-selection-container">
-          <h3>Selected labels</h3>
-          <div style={{ display: "flex", gap: "1rem" }}>
-            {selectedLabelElements}
-          </div>
-        </div>
-
-        <div
-          className="create-view-page-selection-container"
-          style={{ gridColumn: "2/3" }}
-        ></div>
-      </div> */}
-    </div>
-  );
+  return <><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">Create view</h1><form className="mb-5 rounded-xl border border-slate-200 bg-surface p-6 grid gap-5" onSubmit={submit}>
+    {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">View name<Input required maxLength={100} value={name} onChange={e => setName(e.target.value)} /></label>
+    <fieldset className="min-w-0 border-0 p-0"><legend className="mb-2.5 text-sm font-medium text-slate-700">Priority (leave empty for all)</legend><div className="flex flex-wrap items-center gap-3">{["Low", "Medium", "High", "Urgent"].map(value => <label className="inline-flex min-h-9 cursor-pointer items-center gap-2.5 px-1 py-1.5 text-sm font-medium leading-normal pointer-coarse:min-h-11" key={value}><Input type="checkbox" checked={priorities.includes(value)} onChange={() => toggle(value, priorities, setPriorities)} />{value}</label>)}</div></fieldset>
+    <fieldset className="min-w-0 border-0 p-0"><legend className="mb-2.5 text-sm font-medium text-slate-700">Status (leave empty for all)</legend><div className="flex flex-wrap items-center gap-3">{["Pending", "In progress", "Done", "Backlog", "Cancelled"].map(value => <label className="inline-flex min-h-9 cursor-pointer items-center gap-2.5 px-1 py-1.5 text-sm font-medium leading-normal pointer-coarse:min-h-11" key={value}><Input type="checkbox" checked={statuses.includes(value)} onChange={() => toggle(value, statuses, setStatuses)} />{value}</label>)}</div></fieldset>
+    <MultiAssigneeSelect selected={selectedEmployees} onChange={setSelectedEmployees} authenticated={auth.isLoggedin} />
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">Labels (comma separated)<Input value={labels} onChange={e => setLabels(e.target.value)} /></label><Button className={buttonStyles.primary.join(" ")} disabled={saving}>{saving ? "Saving…" : "Save view"}</Button>
+  </form></>;
 }

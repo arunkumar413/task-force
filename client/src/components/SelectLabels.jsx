@@ -42,7 +42,7 @@ export function SelectLabels({
         style={{ cursor: "not-allowed" }}
         onClick={(evt) => handleDeleteLabel(evt, item)}
         key={item.name}
-        className="ser-btn-primary-small ser-round"
+        className="ser-btn-primary-small ser-round text-lg"
       >
         {item.name}
       </button>

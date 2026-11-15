@@ -1,119 +1,189 @@
-// Modal as a separate component
-import React, { useEffect, useRef, useState } from "react";
+import { Button, markdownClasses, Input } from "../components/FormControls";
+import { MarkdownEditor } from "../components/MarkdownEditor";
+import { CommentAttachments } from "../components/CommentAttachments";
+import { AttachmentPicker } from "../components/AttachmentPicker";
+import { SectionTabs } from "../components/SectionTabs";
+import { TaskHistory } from "../components/TaskHistory";
+import React, { useEffect, useState } from "react";
 import Markdown from "react-markdown";
-import { useSelector } from "react-redux";
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useNavigation,
-} from "react-router-dom";
-import { AttachmentCarousel } from "../components/AttachmentCarousel";
-import { fakeAttachmentData } from "../dummyData/fakeAttachmentData";
-import { API_URL } from "../constants";
-import { transformTaskData } from "../../util";
-import { Comment } from "../components/Comment";
-import { MicroTasks } from "../components/MicroTasks";
-import { FAKE_TASK_DATA } from "../dummyData/fakeTaskData";
-import { TaskPageHeader } from "../components/TaskPageHeader";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { deleteTask, loadTask, postComment, saveTask } from "../store/tasksFilterSlice";
+import { buttonStyles } from "../constants";
+import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
+
 
 export function TaskPage() {
-  const location = useLocation();
-  const selectedTask = useSelector((state) => state.tasks.selectedTask);
-  const [transformedData, setTransformedData] = useState(FAKE_TASK_DATA);
-  const [newComment, setNewComment] = useState("");
-
-  useEffect(
-    function () {
-      async function getData() {
-        let res = await fetch(`${API_URL}/task-data/${5}`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "GET",
-          credentials: "include",
-        });
-        if (res.status === 200) {
-          let data = await res.json();
-          const grouped = Object.groupBy(
-            data,
-            ({ comment_t_id }) => comment_t_id
-          );
-          // setTransformedData(data);  // uncomment to use data from DB
-        }
-      }
-      getData();
-    },
-    [selectedTask]
-  );
-
-  const commentCompElements =
-    transformedData.length > 0 &&
-    transformedData[0].task_json.comments.map(function (item, index) {
-      return (
-        <Comment
-          key={index.toString()}
-          email={item.email}
-          comment={item.comment}
-          attachments={item.attachments}
-        />
-      );
-    });
-
-  function handleCommentInputChange(evt) {
-    setNewComment(evt.target.value);
+  const {
+    task_id
+  } = useParams();
+  const {
+    items,
+    loaded,
+    error: loadError
+  } = useSelector(state => state.tasks);
+  const task = items.find(item => item.id === task_id);
+  const signedIn = useSelector(state => state.auth.isLoggedin);
+  const [commentFiles, setCommentFiles] = useState([]);
+  const [comment, setComment] = useState("");
+  const [subtask, setSubtask] = useState("");
+  const [attachment, setAttachment] = useState({
+    file_name: "",
+    link: ""
+  });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editingSubtask, setEditingSubtask] = useState(null);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (signedIn && task_id) dispatch(loadTask(task_id));
+  }, [dispatch, signedIn, task_id]);
+  useEffect(() => {
+    if (!task || !hash.startsWith("#comment-")) return;
+    const timer = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ block: "center" }), 0);
+    return () => clearTimeout(timer);
+  }, [hash, task]);
+  async function run(action, after) {
+    setBusy(true);
+    setError("");
+    try {
+      await dispatch(action).unwrap();
+      after?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
-
-  return (
-    <div className="TaskPage">
-      <TaskPageHeader
-        title={selectedTask.title}
-        user={selectedTask.user}
-        priority={selectedTask.priority}
-        dueDate={selectedTask.dueDate}
-        status={selectedTask.status}
-        taskId={selectedTask.id}
-      />
-
-      <div className="selected-task-page-body">
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <p className="task-description">
-            {transformedData.length > 0 &&
-              transformedData[0].task_json.description}
-          </p>
-          <AttachmentCarousel attachmentData={fakeAttachmentData} />
-        </div>
-        <MicroTasks />
-        <div className="selected-task-page-comments-container">
-          {commentCompElements}
-        </div>
-
-        <textarea
-          style={{ width: "100%" }}
-          className="add-comment-box input primary filled"
-          placeholder="Add a new comment"
-          rows={5}
-          cols={100}
-          onChange={handleCommentInputChange}
-        />
-        <button
-          disabled={newComment.length > 0 ? false : true}
-          className={
-            newComment.length > 0
-              ? "ser-btn-primary-small"
-              : "ser-btn-disabled-small"
-          }
-          style={{ marginTop: "1rem" }}
-        >
-          Add comment{" "}
-        </button>
-      </div>
-
-      <div className="selected-task-modal-footer">
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
+  if (!loaded) return <p>{loadError || "Loading task…"}</p>;
+  if (!task) return <p>Task not found. <Link to="/">Back to tasks</Link></p>;
+  const update = patch => run(saveTask({
+    id: task.id,
+    ...patch
+  }));
+  return <>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><Link to="/">← Tasks</Link><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{task.title}</h1></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to={"/task/" + task.id + "/edit"}>Edit task</Link><Button onClick={() => setDeleting(true)}>Delete</Button></div></div>
+    {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    {deleting && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><p>Delete this task and its comments?</p><div className="flex flex-wrap items-center gap-3"><Button disabled={busy} onClick={() => run(deleteTask(task.id), () => navigate("/"))}>Delete task</Button><Button onClick={() => setDeleting(false)}>Keep task</Button></div></div>}
+    <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6">
+      <dl className="mb-5 grid grid-cols-2 gap-4 border-b border-slate-200 pb-5 sm:grid-cols-[repeat(4,max-content)] sm:justify-between [&_dt]:text-xs [&_dt]:text-slate-500 [&_dd]:mt-1"><div><dt>Priority</dt>
+        <dd className="font-bold">{task.priority}</dd></div><div>
+          <dt>Status</dt><dd className="font-bold">{task.status}</dd>
+        </div><div><dt>Assignee</dt>
+          <dd className="font-bold">{task.user || "—"}</dd>
+        </div><div><dt>Due date</dt>
+          <dd className="font-bold">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</dd></div></dl>
+      <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
+      <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
-  );
+    <SectionTabs activeId={hash.startsWith("#comment-") ? "comments" : undefined} tabs={[{ id: "subtasks", label: `Subtasks (${task.subtasks.length})` }, { id: "comments", label: `Comments (${task.comments.length})` }, { id: "attachments", label: `Attachments (${task.attachments.length})` }, { id: "history", label: `History (${task.history?.length || 0})` }]}>
+      <details open className="group/subtasks mb-5 rounded-xl border border-slate-200 bg-surface">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-6 text-slate-900 [&::-webkit-details-marker]:hidden">
+          <h2 className="text-lg font-semibold tracking-tight">Subtasks ({task.subtasks.length})</h2>
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="size-5 shrink-0 text-slate-500 transition-transform group-open/subtasks:rotate-180">
+            <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
+        <div className="px-6 pb-6">
+          {task.subtasks.map((item, index) => <div className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5 [&_label]:inline-flex [&_label]:flex-row [&_label]:items-center [&_label]:gap-3" key={item._id || item.id || index}>
+            {editingSubtask?.index === index ?
+
+
+              <form className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+                event.preventDefault();
+                run(saveTask({
+                  id: task.id,
+                  subtasks: task.subtasks.map((sub, i) => i === index ? {
+                    ...sub,
+                    title: editingSubtask.title.trim()
+                  } : sub)
+                }), () => setEditingSubtask(null));
+              }}>
+                <Input aria-label="Subtask title" required value={editingSubtask.title} onChange={e => setEditingSubtask({
+                  index,
+                  title: e.target.value
+                })} /><Button disabled={busy || !editingSubtask.title.trim()}>Save</Button><Button type="button" onClick={() => setEditingSubtask(null)}>Cancel</Button></form> : <><label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700"><Input type="checkbox" disabled={busy} checked={item.isDone} onChange={event => update({
+                  subtasks: task.subtasks.map((sub, i) => i === index ? {
+                    ...sub,
+                    isDone: event.target.checked
+                  } : sub)
+                })} />{item.title}</label>
+                <div className="flex flex-wrap items-center gap-8">
+
+
+                  <Button className="border-blue-500" disabled={busy} onClick={() => setEditingSubtask({
+                    index,
+                    title: item.title
+                  })}>
+
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-square-pen preview-icon"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></svg>
+
+                  </Button>
+
+
+                  <Button className="border-red-500" disabled={busy} onClick={() => update({
+                    subtasks: task.subtasks.filter((_, i) => i !== index)
+                  })}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash preview-icon stroke-red-400 hover:stroke-red-500"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  </Button>
+
+                </div></>}
+          </div>)}
+          <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+            event.preventDefault();
+            run(saveTask({
+              id: task.id,
+              subtasks: [...task.subtasks, {
+                title: subtask.trim(),
+                isDone: false
+              }]
+            }), () => setSubtask(""));
+          }}>
+            <Input aria-label="New subtask" value={subtask} onChange={e => setSubtask(e.target.value)} placeholder="Add a subtask" required /><Button disabled={busy || !subtask.trim()}>Add subtask</Button>
+          </form>
+        </div>
+      </details>
+      <section className="mb-5 rounded-xl">
+        <h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900 p-1">Comments ({task.comments.length})</h2>
+        {task.comments.map((item, index) =>
+          <article id={`comment-${item.id || item._id}`}
+            className="mb-4 border-b border-slate-200 py-4 bg-surface px-4 rounded-xl"
+            key={item.id || item._id || index}>
+            <p className="text-sm text-slate-500">
+              {item.username || item.email} · {format(new Date(item.createdAt), 'PPpp')} ({formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })})  </p><div className={markdownClasses + " "} data-testid="markdown"><Markdown>{item.comment}</Markdown></div>
+            <CommentAttachments files={item.attachments} />
+          </article>)}
+        <form className="space-y-3" onSubmit={event => {
+          event.preventDefault();
+          run(postComment({
+            id: task.id,
+            comment: comment.trim(), files: commentFiles
+          }), () => { setComment(""); setCommentFiles([]); });
+        }}>
+          <MarkdownEditor label="Add a comment" name="comment" rows={4} maxLength={20000} value={comment} onChange={e => setComment(e.target.value)} disabled={busy} placeholder="Write a comment; mention a colleague with their email…" previewTestId="comment-preview" />
+          {signedIn ? <AttachmentPicker files={commentFiles} onChange={setCommentFiles} onError={setError} disabled={busy} /> : <p className="text-xs text-slate-500">Sign in to attach files to comments.</p>}
+          <Button className={buttonStyles.primary.join(" ")} disabled={busy || !comment.trim()}>Add comment</Button>
+        </form>
+      </section>
+      <section className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><h2 className="mb-3.5 text-lg font-semibold tracking-tight text-slate-900">Attachments</h2>
+        <CommentAttachments files={task.attachments} viewerLabel="Task images" disabled={busy} onRemove={index => update({ attachments: task.attachments.filter((_, i) => i !== index) })} />
+        {/* <form className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center [&_input]:min-w-0 [&_input]:flex-1 [&_button]:shrink-0 [&_button]:whitespace-nowrap" onSubmit={event => {
+        event.preventDefault();
+        if (!/^https?:\/\//i.test(attachment.link)) {
+          setError("Use an http or https attachment URL");
+          return;
+        }
+        run(saveTask({ id: task.id, attachments: [...task.attachments, attachment] }), () => setAttachment({ file_name: "", link: "" }));
+      }}>
+        <Input aria-label="Attachment name" placeholder="Attachment name" value={attachment.file_name} onChange={e => setAttachment({ ...attachment, file_name: e.target.value })} required />
+        <Input aria-label="Attachment URL" placeholder="https://…" type="url" value={attachment.link} onChange={e => setAttachment({ ...attachment, link: e.target.value })} required /><Button disabled={busy}>Add link</Button>
+      </form> */}
+      </section>
+      <TaskHistory history={task.history} />
+    </SectionTabs>
+  </>;
 }
