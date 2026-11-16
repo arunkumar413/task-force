@@ -66,9 +66,12 @@ export function TaskPage() {
     ...patch
   }));
   return <>
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><Link to="/">← Tasks</Link><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{task.title}</h1></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to={"/task/" + task.id + "/edit"}>Edit task</Link><Button onClick={() => setDeleting(true)}>Delete</Button></div></div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><Link to="/">← Tasks</Link><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{task.title}</h1></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to={"/task/" + task.id + "/edit"}>Edit task</Link>
+    <Button className="border-red-500 border-1 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg" onClick={() => setDeleting(true)}>Delete</Button></div></div>
     {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-    {deleting && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><p>Delete this task and its comments?</p><div className="flex flex-wrap items-center gap-3"><Button disabled={busy} onClick={() => run(deleteTask(task.id), () => navigate("/"))}>Delete task</Button><Button onClick={() => setDeleting(false)}>Keep task</Button></div></div>}
+    {deleting && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><p>Delete this task and its comments?</p><div className="flex flex-wrap items-center gap-3">
+      <Button className="border-red-500 border-1 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg" disabled={busy} onClick={() => run(deleteTask(task.id), () => navigate("/"))}>Delete task</Button>
+    <Button className="bg-green-700 px-4 py-2 rounded-lg text-white" onClick={() => setDeleting(false)}>Keep task</Button></div></div>}
     <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6">
       <dl className="mb-5 grid grid-cols-2 gap-4 border-b border-slate-200 pb-5 sm:grid-cols-[repeat(4,max-content)] sm:justify-between [&_dt]:text-xs [&_dt]:text-slate-500 [&_dd]:mt-1"><div><dt>Priority</dt>
         <dd className="font-bold">{task.priority}</dd></div><div>
@@ -76,7 +79,7 @@ export function TaskPage() {
         </div><div><dt>Assignee</dt>
           <dd className="font-bold">{task.user || "—"}</dd>
         </div><div><dt>Due date</dt>
-          <dd className="font-bold">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "—"}</dd></div></dl>
+          <dd className="font-bold">{task.dueDate ? format(new Date(task.dueDate), 'dd-MMM-yyyy') : "—"}</dd></div></dl>
       <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
       <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
     </div>
@@ -128,7 +131,7 @@ export function TaskPage() {
                   <Button className="border-red-500" disabled={busy} onClick={() => update({
                     subtasks: task.subtasks.filter((_, i) => i !== index)
                   })}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash preview-icon stroke-red-400 hover:stroke-red-500"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash preview-icon stroke-red-500 hover:stroke-red-500"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                   </Button>
 
                 </div></>}
