@@ -80,8 +80,11 @@ export function TaskPage() {
           <dd className="font-bold">{task.user || "—"}</dd>
         </div><div><dt>Due date</dt>
           <dd className="font-bold">{task.dueDate ? format(new Date(task.dueDate), 'dd-MMM-yyyy') : "—"}</dd></div></dl>
-      <div className={markdownClasses + " "} data-testid="markdown"><Markdown>{task.description || "No description yet."}</Markdown></div>
-      <div className="flex flex-wrap items-center gap-3">{task.labels?.map(label => <span className="rounded-md bg-slate-100 px-2 py-1 text-xs" key={label}>{label}</span>)}</div>
+      <div className={markdownClasses + " "} data-testid="markdown">
+        <Markdown>{task.description || "No description yet."}</Markdown></div>
+      <div className="flex flex-wrap items-center gap-3">
+        {task.labels?.map(label => <span className="rounded-md bg-amber-100 px-2 py-1 text-xs" key={label}>{label}</span>)}
+        </div>
     </div>
     <SectionTabs activeId={hash.startsWith("#comment-") ? "comments" : undefined} tabs={[{ id: "subtasks", label: `Subtasks (${task.subtasks.length})` }, { id: "comments", label: `Comments (${task.comments.length})` }, { id: "attachments", label: `Attachments (${task.attachments.length})` }, { id: "history", label: `History (${task.history?.length || 0})` }]}>
       <details open className="group/subtasks mb-5 rounded-xl border border-slate-200 bg-surface">
