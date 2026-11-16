@@ -5,6 +5,7 @@ import App from "./pages/App";
 import { CreateNewTaskPage } from "./pages/CreateNewTaskPage";
 import { EditTaskPage } from "./pages/EditTaskPage";
 import { CreateViewPage } from "./pages/CreateViewPage";
+import { ViewPage } from "./pages/ViewPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ContactPage } from "./pages/ContactPage";
 import { RequireAuth } from "./components/RequireAuth";
@@ -15,7 +16,8 @@ export const AppRouter = createBrowserRouter([
     { path: "/task/:task_id", lazy: async () => ({ Component: (await import("./pages/TaskPage")).TaskPage }) },
     { path: "/add-new-task", element: <CreateNewTaskPage /> },
     { path: "/task/:task_id/edit", element: <EditTaskPage /> },
-    { path: "/view/:viewId", element: <App /> },
+    { path: "/view/:viewId", element: <ViewPage /> },
+    { path: "/view/:viewId/edit", element: <CreateViewPage /> },
     { path: "/create-view", element: <CreateViewPage /> },
     { path: "/about", element: <AboutPage /> },
     { path: "/contact", element: <ContactPage /> },

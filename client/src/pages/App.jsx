@@ -7,7 +7,7 @@ import { loadTasks } from "../store/tasksFilterSlice";
 import { format } from "date-fns";
 import { buttonStyles } from "../constants";
 
-export default function App() {
+export default function App({ viewActions, viewFeedback }) {
   const {
     viewId
   } = useParams();
@@ -61,7 +61,8 @@ export default function App() {
   }, [items, search, priorities, statuses, view, viewId, auth.id]);
   if (viewId && viewId !== "mine" && loaded && !view) return <p>View not found. <Link to="/">All tasks</Link></p>;
   return <>
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{view?.name || (viewId === "mine" ? "My tasks" : "All tasks")}</h1><p className="text-sm text-slate-500">A clear view of what’s next.</p></div><Link className={buttonStyles.primary.join(" ")} to="/add-new-task">+ New task</Link></div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{view?.name || (viewId === "mine" ? "My tasks" : "All tasks")}</h1><p className="text-sm text-slate-500">A clear view of what’s next.</p></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to="/add-new-task">+ New task</Link>{view && viewId !== "mine" && viewActions}</div></div>
+    {view && viewId !== "mine" && viewFeedback}
     <div className="space-y-5">
       <div className="flex items-end gap-3">
         <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium text-slate-700">Search<Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" /></label>

@@ -127,6 +127,31 @@ test("saved views belong to their creator and tenant", async () => {
   await admin.post("/api/views").send({ name: "Cross tenant", employees: [outsiderUser.id] }).expect(400);
 });
 
+test("saved views can be edited and deleted only by their owner", async () => {
+  const created = await admin.post("/api/views").send({ name: "Editable", labels: ["Backend"] }).expect(201);
+  const url = "/api/views/" + created.body.data.id;
+  await request(app).patch(url).send({ name: "Anonymous" }).expect(401);
+  await outsider.patch(url).send({ name: "Hijacked" }).expect(404);
+  await outsider.delete(url).expect(404);
+  await admin.patch("/api/views/invalid").send({ name: "Invalid" }).expect(400);
+  await admin.patch(url).send({ employees: [outsiderUser.id] }).expect(400);
+  await admin.patch(url).send({ name: "" }).expect(400);
+  const updated = await admin.patch(url).send({ name: "Updated", priorities: ["High"], statuses: ["Done"], labels: ["Release"], employees: [adminUser.id], tenantId: outsiderUser.tenantId, employee: outsiderUser.id }).expect(200);
+  assert.equal(updated.body.data.name, "Updated");
+  assert.equal(updated.body.data.tenantId, adminUser.tenantId);
+  assert.equal(updated.body.data.employee, adminUser.id);
+  assert.deepEqual(updated.body.data.labels, ["Release"]);
+  assert.deepEqual(updated.body.data.employees, [adminUser.id]);
+  assert.deepEqual(updated.body.data.priorities, ["High"]);
+  const Todo = require("../models/Todo");
+  const count = await Todo.countDocuments();
+  await admin.delete(url).expect(204);
+  await admin.delete(url).expect(404);
+  assert.equal(await Todo.countDocuments(), count);
+  const views = await admin.get("/api/views").expect(200);
+  assert.ok(!views.body.data.some(view => view.id === created.body.data.id));
+});
+
 test("invitation, acceptance, department assignment, and live permission revocation work", async () => {
   const invited = await admin.post("/api/employees/invite").send({
     rows: [{ name: "Teammate", email: "teammate@example.com" }],

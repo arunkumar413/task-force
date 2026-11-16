@@ -77,10 +77,14 @@ export const postComment = createAsyncThunk("tasks/comment", async ({ id, commen
 });
 export const saveView = createAsyncThunk("tasks/view", async (view, { getState, dispatch }) => {
   const result = getState().auth.isLoggedin
-    ? await request("/views", { method: "POST", body: JSON.stringify(view) })
-    : { ...view, id: crypto.randomUUID() };
+    ? await request(view.id ? "/views/" + view.id : "/views", { method: view.id ? "PATCH" : "POST", body: JSON.stringify(view) })
+    : { ...view, id: view.id || crypto.randomUUID() };
   dispatch(addView(result));
   return result;
+});
+export const deleteView = createAsyncThunk("tasks/deleteView", async (id, { getState, dispatch }) => {
+  if (getState().auth.isLoggedin) await request("/views/" + id, { method: "DELETE" });
+  dispatch(removeView(id));
 });
 const slice = createSlice({
   name: "tasks",
@@ -91,7 +95,11 @@ const slice = createSlice({
       if (index < 0) state.items.push(payload); else state.items[index] = payload;
     },
     removeTask(state, { payload }) { state.items = state.items.filter(task => task.id !== payload); },
-    addView(state, { payload }) { state.views.push(payload); },
+    addView(state, { payload }) {
+      const index = state.views.findIndex(view => view.id === payload.id);
+      if (index < 0) state.views.push(payload); else state.views[index] = payload;
+    },
+    removeView(state, { payload }) { state.views = state.views.filter(view => view.id !== payload); },
     resetTasks(state) { state.items = []; state.views = []; state.loaded = false; state.owner = null; },
   },
   extraReducers: builder => builder
@@ -105,7 +113,7 @@ const slice = createSlice({
       state.loading = false; state.error = action.error.message;
     }),
 });
-export const { upsertTask, removeTask, addView, resetTasks } = slice.actions;
+export const { upsertTask, removeTask, addView, removeView, resetTasks } = slice.actions;
 export function persistDemo(store) {
   store.subscribe(() => {
     const { auth, tasks } = store.getState();

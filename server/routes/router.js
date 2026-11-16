@@ -9,7 +9,7 @@ router.get("/notifications", notifications.list);
 router.patch("/notifications/read-all", notifications.readAll);
 router.patch("/notifications/:notificationId/read", notifications.read);
 const allow = action => checkAuthorization({ resource: "task", action });
-router.get("/tasks/labels", checkAuthorization({ permissions: ["task.write", "task.update"] }), tasks.listTaskLabels);
+router.get("/tasks/labels", checkAuthorization({ permissions: ["task.read", "task.write", "task.update"] }), tasks.listTaskLabels);
 router.get("/tasks/departments", checkAuthorization({ permissions: ["task.write", "task.update"] }), tasks.listTaskDepartments);
 router.get("/tasks/assignees",
   checkAuthorization({ permissions: ["task.read", "task.write", "task.update"] }),
@@ -26,4 +26,6 @@ router.get("/tasks/:taskId/comments/:commentId/attachments/:attachmentId", allow
 router.get("/task-data/:taskId", allow("read"), tasks.getTask);
 router.get("/views", allow("read"), tasks.listViews);
 router.post("/views", allow("read"), tasks.createView);
+router.patch("/views/:viewId", allow("read"), tasks.updateView);
+router.delete("/views/:viewId", allow("read"), tasks.deleteView);
 module.exports = router;

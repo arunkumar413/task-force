@@ -215,6 +215,29 @@ exports.createView = handle(async (req, res) => {
   const view = await TaskView.create({ name, priorities, statuses, labels, employees, tenantId: req.session.user.tenantId, employee: req.session.user.id });
   res.status(201).json({ data: view });
 });
+async function findView(req) {
+  if (!validId(req.params.viewId)) throw httpError(400, "Invalid view ID");
+  const view = await TaskView.findOne({ _id: req.params.viewId, tenantId: req.session.user.tenantId, employee: req.session.user.id });
+  if (!view) throw httpError(404, "View not found");
+  return view;
+}
+exports.updateView = handle(async (req, res) => {
+  const view = await findView(req);
+  const fields = Object.fromEntries(["name", "priorities", "statuses", "labels", "employees"].filter(key => Object.hasOwn(req.body, key)).map(key => [key, req.body[key]]));
+  if (Object.hasOwn(fields, "employees")) {
+    if (!Array.isArray(fields.employees) || fields.employees.some(id => !validId(id))) throw httpError(400, "Invalid employees");
+    const count = await Employee.countDocuments({ _id: { $in: fields.employees }, tenantId: req.session.user.tenantId });
+    if (count !== new Set(fields.employees).size) throw httpError(400, "Employees must belong to your organization");
+  }
+  view.set(fields);
+  await view.save();
+  res.json({ data: view });
+});
+exports.deleteView = handle(async (req, res) => {
+  const view = await findView(req);
+  await view.deleteOne();
+  res.status(204).end();
+});
 exports.taskScope = taskScope;
 exports.listTaskLabels = handle(async (req, res) => {
   res.json({ data: await listLabels(req.session.user.tenantId) });
