@@ -59,7 +59,9 @@ The dataset's original creator IDs 1, 2, and 3 map to Ava, Marcus, and Liam resp
 - Multiple device sessions and OTP password changes that sign out other devices.
 - Tailwind styling and light, dark, and system themes.
 - All active screens use Tailwind utilities. Shared form controls live in `client/src/components/FormControls.jsx`; `client/src/index.css` contains only Tailwind setup and theme tokens.
-- Structured request logging without authentication request bodies.
+- Structured request logging with sensitive request-body fields redacted.
+
+Server logging uses Pino and pino-http. JSON logs are written to stdout and `server/logs/app.log`; error and fatal entries are also written to `server/logs/error.log`, following the [template logging setup](https://github.com/arunkumar413/webpack-react-express-template/blob/main/server/logger.js). HTTP logs include a generated request ID, method, URL, status, response time, parsed request body, query, route parameters, and IP address. Request headers are omitted. Body and query objects are copied recursively, replacing password, OTP, token, secret, authorization, cookie, API-key, verification-code, and recovery-code fields with `[redacted]`, including fields inside nested arrays. Field matching ignores case and separators; the original request is unchanged. Secrets embedded in ordinary strings or URLs are not covered by field-name redaction. Set `LOG_LEVEL` (default `info`) to control verbosity and `LOG_DIR` to change the output directory. The directory is created automatically and must be writable. Files append across restarts; rotation and retention must be managed by the deployment environment.
 
 Configure `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` for invitation and password emails. Without SMTP, development codes are printed to the server console.
 

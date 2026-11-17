@@ -9,7 +9,7 @@ const MONGODB_URI =
 async function connectDB() {
   mongoose.set("strictQuery", true);
   await mongoose.connect(MONGODB_URI);
-  console.log("MongoDB connected");
+  require("./logger").info("MongoDB connected");
 }
 
 module.exports = {

@@ -27,7 +27,7 @@ if (isProduction && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET =
   throw new Error("Set SESSION_SECRET before starting in production");
 }
 if (isProduction) app.set("trust proxy", 1);
-app.use(require("pino-http")({ logger, genReqId: () => require("node:crypto").randomUUID() }));
+app.use(require("./middlewares/requestLogger"));
 app.use(cors({
   credentials: true,
   origin(origin, callback) {
