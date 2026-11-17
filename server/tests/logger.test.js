@@ -38,6 +38,7 @@ test("Pino writes application and error files, honors verbosity, and redacts sec
     assert.equal(errors[0].err.message, "Probe failure");
     const http = logs.find(log => log.msg === "request completed");
     assert.ok(http.req.id);
+    assert.match(http.req.id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     assert.equal(http.req.method, "POST");
     assert.equal(http.res.statusCode, 200);
     assert.equal(typeof http.responseTime, "number");
