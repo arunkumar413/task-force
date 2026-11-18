@@ -75,8 +75,31 @@ app.get("*", (req, res) => res.sendFile(path.join(clientDist, "index.html")));
 app.use(require("./middlewares/errorHandlerMiddleware"));
 if (require.main === module) {
   connectDB().then(() => {
-    require("./utils/commentNotifications").startNotificationRetries(logger);
-    return app.listen(SERVER_PORT, "0.0.0.0", () => logger.info({ port: SERVER_PORT }, "Task Force listening"));
+    const notificationTimer = require("./utils/commentNotifications").startNotificationRetries(logger);
+    const server = app.listen(SERVER_PORT, "0.0.0.0", () => logger.info({ port: SERVER_PORT }, "Task Force listening"));
+    let stopping = false;
+    const shutdown = signal => {
+      if (stopping) return;
+      stopping = true;
+      logger.info({ signal }, "Task Force stopping");
+      clearInterval(notificationTimer);
+      const deadline = setTimeout(() => process.exit(1), 10000);
+      deadline.unref();
+      server.close(async () => {
+        try {
+          await app.locals.sessionStore.close();
+          await require("mongoose").disconnect();
+          await logger.close();
+          process.exit(0);
+        } catch (err) {
+          process.stderr.write(`Shutdown failed: ${err.message}\n`);
+          process.exit(1);
+        }
+      });
+    };
+    process.once("SIGTERM", () => shutdown("SIGTERM"));
+    process.once("SIGINT", () => shutdown("SIGINT"));
+    return server;
   })
     .catch(err => { logger.error({ err }, "MongoDB startup failed"); process.exit(1); });
 }

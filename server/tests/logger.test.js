@@ -4,6 +4,30 @@ const { mkdtempSync, readFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { readdirSync, statSync } = require("node:fs");
+
+test("file logs rotate by size and retain at most the configured archives", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "task-force-rotation-"));
+  try {
+    const result = spawnSync(process.execPath, ["-e", `
+      const logger = require('./logger');
+      (async () => {
+        for (let i = 0; i < 30; i++) logger.error({ sequence: i, detail: 'x'.repeat(600) }, 'Rotation');
+        await logger.close();
+      })().catch(err => { console.error(err); process.exitCode = 1; });
+    `], { cwd: path.join(__dirname, ".."), env: { ...process.env, LOG_DIR: dir, LOG_LEVEL: "info", LOG_MAX_SIZE: "1K", LOG_MAX_FILES: "2" }, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    const files = readdirSync(dir);
+    for (const name of ["app.log", "error.log"]) {
+      const archives = files.filter(file => file.endsWith(name) && file !== name);
+      assert.equal(archives.length, 2);
+      assert.ok(archives.every(file => statSync(path.join(dir, file)).size > 0));
+      const content = [...archives, name].filter(file => files.includes(file)).map(file => readFileSync(path.join(dir, file), "utf8")).join("");
+      assert.ok(content.includes('"sequence":29'));
+      assert.ok(!content.includes('"sequence":0,'));
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 
 test("Pino writes application and error files, honors verbosity, and redacts secrets", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "task-force-logging-"));
@@ -20,12 +44,14 @@ test("Pino writes application and error files, honors verbosity, and redacts sec
         if (req.body.password !== 'secret-password' || req.body.members[0].OTP !== 'secret-otp') throw new Error('Request was mutated');
         res.json({ ok: true });
       });
+      app.post('/failure', (req, res) => res.status(500).json({ ok: false }));
       (async () => {
         logger.debug('Debug entry');
         logger.info('Info entry');
         logger.error({ err: new Error('Probe failure') }, 'Error entry');
         await request(app).post('/probe').set('Cookie', 'secret-cookie').set('Authorization', 'Bearer secret-token').send({ title: 'Visible title', password: 'secret-password', members: [{ OTP: 'secret-otp', name: 'Visible member', credentials: { access_token: 'secret-access', apiKey: 'secret-key', confirmPassword: 'secret-confirm' } }] }).expect(200);
-        logger.flush();
+        await request(app).post('/failure').send({ privateNote: 'private-error-body' }).expect(500);
+        await logger.close();
       })().catch(err => { console.error(err); process.exitCode = 1; });
     `], { cwd: path.join(__dirname, ".."), env: { ...process.env, LOG_DIR: dir, LOG_LEVEL: "debug" }, encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr);
@@ -43,14 +69,11 @@ test("Pino writes application and error files, honors verbosity, and redacts sec
     assert.equal(http.res.statusCode, 200);
     assert.equal(typeof http.responseTime, "number");
     assert.equal(http.req.headers, undefined);
-    assert.equal(http.body.title, "Visible title");
-    assert.equal(http.body.password, "[redacted]");
-    assert.equal(http.body.members[0].name, "Visible member");
-    assert.equal(http.body.members[0].OTP, "[redacted]");
-    assert.equal(http.body.members[0].credentials.access_token, "[redacted]");
+    assert.equal(http.body, undefined);
+    assert.equal(logs.find(log => log.msg === "request errored").body, undefined);
     const manual = logs.find(log => log.msg === "Probe request");
-    assert.equal(manual.body.title, "Visible title");
-    assert.equal(manual.body.members[0].credentials.apiKey, "[redacted]");
+    assert.equal(manual.body, undefined);
+    assert.ok(!/Visible title|Visible member|private-error-body/.test(raw + result.stdout));
     assert.ok(!/secret-cookie|secret-token|secret-password|secret-otp|secret-access|secret-key|secret-confirm/.test(raw + result.stdout));
     assert.ok(result.stdout.includes("Info entry"));
   } finally { rmSync(dir, { recursive: true, force: true }); }

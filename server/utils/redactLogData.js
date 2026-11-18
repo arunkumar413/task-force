@@ -14,3 +14,4 @@ function redactLogData(value, seen = new WeakSet()) {
 }
 
 module.exports = redactLogData;
+module.exports.isSensitiveKey = key => sensitiveKey.test(key.replace(/[^a-z0-9]/gi, ""));
