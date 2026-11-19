@@ -77,10 +77,11 @@ export default function App({ viewActions, viewFeedback }) {
           }}>Clear filters</Button>
       </div>
       <div className="grid items-start gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
-      <fieldset className="m-0 min-w-0 border-0 p-0"><legend className="mb-2.5 text-sm font-medium text-slate-700">Priority</legend><div className="flex flex-wrap gap-2">
+      <fieldset className="m-0 min-w-0 border-0 p-0">
+        <legend className="float-left mr-3 flex min-h-9 items-center text-sm font-medium text-slate-700">Priority:</legend><div className="flex flex-wrap gap-2">
         {["Low", "Medium", "High", "Urgent"].map(value => <Button key={value} type="button" className="min-h-9 rounded-full border border-slate-300 bg-surface px-3.5 py-1.5 text-sm leading-relaxed text-slate-700 transition-colors hover:border-primary hover:text-primary aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white" aria-pressed={priorities.includes(value)} onClick={() => toggleFilter(value, setPriorities)}>{value}</Button>)}
       </div></fieldset>
-      <fieldset className="m-0 min-w-0 border-0 p-0"><legend className="mb-2.5 text-sm font-medium text-slate-700">Status</legend><div className="flex flex-wrap gap-2">
+      <fieldset className="m-0 min-w-0 border-0 p-0"><legend className="float-left mr-3 flex min-h-9 items-center text-sm font-medium text-slate-700">Status:</legend><div className="flex flex-wrap gap-2">
         {["Pending", "In progress", "Done", "Backlog", "Cancelled"].map(value => <Button key={value} type="button" className="min-h-9 rounded-full border border-slate-300 bg-surface px-3.5 py-1.5 text-sm leading-relaxed text-slate-700 transition-colors hover:border-primary hover:text-primary aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white" aria-pressed={statuses.includes(value)} onClick={() => toggleFilter(value, setStatuses)}>{value}</Button>)}
       </div></fieldset>
       </div>
