@@ -41,6 +41,7 @@ export default function App({ viewActions, viewFeedback }) {
     };
     const now = new Date();
     const searchTerms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
     items.filter(task => {
       if (viewId === "mine" && String(task.employee) !== String(auth.id || "1")) return false;
       const searchableFields = [task.title, task.priority, task.status, task.user, task.description].map(value => String(value ?? "").toLowerCase());
@@ -64,8 +65,11 @@ export default function App({ viewActions, viewFeedback }) {
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{view?.name || (viewId === "mine" ? "My tasks" : "All tasks")}</h1><p className="text-sm text-slate-500">A clear view of what’s next.</p></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to="/add-new-task">+ New task</Link>{view && viewId !== "mine" && viewActions}</div></div>
     {view && viewId !== "mine" && viewFeedback}
     <div className="space-y-5">
-      <div className="flex items-end gap-3">
-        <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium text-slate-700">Search<Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" /></label>
+      <div className="flex items-center gap-3">
+        <label className="flex gap-1.5 text-sm font-medium text-slate-700">Search</label>
+          
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" />
+          
         <Button className="min-h-[42px] shrink-0 rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm font-medium text-slate-700 hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
           disabled={priorities.length === 0 && statuses.length === 0} type="button" onClick={() => {
             setPriorities([]);
@@ -84,6 +88,8 @@ export default function App({ viewActions, viewFeedback }) {
     {loading && <p role="status">Loading tasks…</p>}
     {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error} <Button onClick={() => dispatch(loadTasks())}>Retry</Button></p>}
     {!loading && !error && !groups.length && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6">No tasks match this view.</div>}
+    
+    
     {groups.length > 0 && <div role="region" aria-label="Task list" tabIndex={0}
       className="mt-7 max-h-[min(70vh,48rem)] overflow-auto">
       <table className="w-full min-w-[800px] table-fixed border-separate border-spacing-0 text-left text-sm">
@@ -113,8 +119,11 @@ export default function App({ viewActions, viewFeedback }) {
               const lastTask = taskIndex === tasks.length - 1;
               const cellClasses = "border-b border-slate-200 bg-surface px-4 py-3 text-left align-middle group-hover/task-row:bg-slate-50 " + (firstTask ? "border-t " : "");
               return <tr key={task.id} data-task-id={task.id} className="group/task-row">
-                <td className={cellClasses + "border-l wrap-anywhere " + (firstTask ? "rounded-tl-lg " : "") + (lastTask ? "rounded-bl-lg" : "")}><Link className="font-medium text-slate-900 hover:text-primary" to={"/task/" + task.id}>{task.title}</Link></td>
-                <td className={cellClasses}><span className={priorityClasses[task.priority]}>{task.priority}</span></td>
+                <td className={cellClasses + "border-l wrap-anywhere " + (firstTask ? "rounded-tl-lg " : "") + (lastTask ? "rounded-bl-lg" : "")}>
+                <Link className="font-medium text-slate-900 hover:text-primary hover:underline underline-offset-4" to={"/task/" + task.id}>{task.title}</Link>
+                </td>
+                <td className={cellClasses}>
+                <span className={priorityClasses[task.priority]}>{task.priority}</span></td>
                 <td className={cellClasses + "whitespace-nowrap"}>{task.status}</td>
                 <td className={cellClasses + "wrap-anywhere"}>{task.user || "—"}</td>
                 <td className={cellClasses + "border-r whitespace-nowrap " + (firstTask ? "rounded-tr-lg " : "") + (lastTask ? "rounded-br-lg" : "")}>{task.dueDate ?  format(new Date(task.dueDate),"dd-MMM-yyyy") : "—"}</td>
