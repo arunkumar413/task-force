@@ -6,6 +6,7 @@ import { isToday, isTomorrow, isThisWeek, isThisMonth, addWeeks, addMonths, isSa
 import { loadTasks } from "../store/tasksFilterSlice";
 import { format } from "date-fns";
 import { buttonStyles } from "../constants";
+import { compareTasks } from "../utils/taskSort.mjs";
 
 export default function App({ viewActions, viewFeedback }) {
   const {
@@ -53,12 +54,12 @@ export default function App({ viewActions, viewFeedback }) {
       if (view?.labels?.length && !view.labels.some(label => task.labels.includes(label))) return false;
       if (view?.employees?.length && !view.employees.includes(String(task.employee))) return false;
       return true;
-    }).sort((a, b) => new Date(a.dueDate || 8640000000000000) - new Date(b.dueDate || 8640000000000000)).forEach(task => {
+    }).forEach(task => {
       const date = new Date(task.dueDate);
       const bucket = !task.dueDate || Number.isNaN(+date) ? "No due date" : isBefore(date, startOfDay(now)) ? "Overdue" : isToday(date) ? "Today" : isTomorrow(date) ? "Tomorrow" : isThisWeek(date) ? "This week" : isSameWeek(date, addWeeks(now, 1)) ? "Next week" : isThisMonth(date) ? "This month" : isSameMonth(date, addMonths(now, 1)) ? "Next month" : "Later";
       buckets[bucket].push(task);
     });
-    return Object.entries(buckets).filter(([, tasks]) => tasks.length);
+    return Object.entries(buckets).filter(([, tasks]) => tasks.length).map(([label, tasks]) => [label, tasks.sort(compareTasks)]);
   }, [items, search, priorities, statuses, view, viewId, auth.id]);
   if (viewId && viewId !== "mine" && loaded && !view) return <p>View not found. <Link to="/">All tasks</Link></p>;
   return <>

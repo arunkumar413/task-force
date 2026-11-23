@@ -66,7 +66,9 @@ export function TaskPage() {
     ...patch
   }));
   return <>
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div><Link to="/">← Tasks</Link><h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{task.title}</h1></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to={"/task/" + task.id + "/edit"}>Edit task</Link>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 [&_h1]:mb-1"><div>
+      {/* <Link className='hover:underline' to="/">← Tasks</Link> */}
+      <h1 className="mb-5 text-3xl font-semibold tracking-tight text-slate-900">{task.title}</h1></div><div className="flex flex-wrap items-center gap-3"><Link className={buttonStyles.primary.join(" ")} to={"/task/" + task.id + "/edit"}>Edit task</Link>
     <Button className="border-red-500 border-1 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg" onClick={() => setDeleting(true)}>Delete</Button></div></div>
     {error && <p role="alert" className="my-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {deleting && <div className="mb-5 rounded-xl border border-slate-200 bg-surface p-6"><p>Delete this task and its comments?</p><div className="flex flex-wrap items-center gap-3">
