@@ -20,11 +20,16 @@ export function TaskPage() {
   } = useParams();
   const {
     items,
+    details,
     loaded,
     error: loadError
   } = useSelector(state => state.tasks);
-  const task = items.find(item => item.id === task_id);
   const signedIn = useSelector(state => state.auth.isLoggedin);
+  const accountId = useSelector(state => state.auth.id);
+  const task = signedIn ? details[task_id] : items.find(item => item.id === task_id);
+  const [detailLoad, setDetailLoad] = useState({ key: "", loading: true, error: "" });
+  const [retry, setRetry] = useState(0);
+  const detailKey = `${accountId}:${task_id}`;
   const [commentFiles, setCommentFiles] = useState([]);
   const [comment, setComment] = useState("");
   const [subtask, setSubtask] = useState("");
@@ -40,8 +45,17 @@ export function TaskPage() {
   const navigate = useNavigate();
   const { hash } = useLocation();
   useEffect(() => {
-    if (signedIn && task_id) dispatch(loadTask(task_id));
-  }, [dispatch, signedIn, task_id]);
+    if (!signedIn || !task_id) return;
+    let active = true;
+    setDetailLoad({ key: detailKey, loading: true, error: "" });
+    const pending = dispatch(loadTask(task_id));
+    pending.unwrap().then(() => {
+      if (active) setDetailLoad({ key: detailKey, loading: false, error: "" });
+    }).catch(err => {
+      if (active) setDetailLoad({ key: detailKey, loading: false, error: err.message || "Unable to load task details" });
+    });
+    return () => { active = false; pending.abort(); };
+  }, [dispatch, signedIn, detailKey, task_id, retry]);
   useEffect(() => {
     if (!task || !hash.startsWith("#comment-")) return;
     const timer = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ block: "center" }), 0);
@@ -59,7 +73,9 @@ export function TaskPage() {
       setBusy(false);
     }
   }
-  if (!loaded) return <p>{loadError || "Loading task…"}</p>;
+  if (signedIn && (detailLoad.key !== detailKey || detailLoad.loading)) return <p role="status">Loading task details…</p>;
+  if (signedIn && detailLoad.error) return <div role="alert" className="space-y-3"><p>{detailLoad.error}</p><Button onClick={() => setRetry(value => value + 1)}>Retry</Button> <Link to="/">Back to tasks</Link></div>;
+  if (!signedIn && !loaded) return <p>{loadError || "Loading task…"}</p>;
   if (!task) return <p>Task not found. <Link to="/">Back to tasks</Link></p>;
   const update = patch => run(saveTask({
     id: task.id,

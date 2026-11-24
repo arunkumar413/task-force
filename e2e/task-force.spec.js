@@ -1,4 +1,47 @@
 const { test, expect } = require("@playwright/test");
+
+test("task details load independently of list summaries and support retry", async ({ page }) => {
+  await page.request.post("/api/register", { data: { username: "Detail Browser", email: "detail-browser@example.com", password: "detail-browser-password", organizationName: "Detail Browser" } });
+  const created = await (await page.request.post("/api/tasks", { data: {
+    title: "Full task details", subtasks: [{ title: "Loaded subtask", isDone: true }],
+    attachments: [{ file_name: "task-spec.txt", link: "https://example.com/task-spec.txt" }],
+  } })).json();
+  const id = created.data.id;
+  await page.request.post(`/api/tasks/${id}/comments`, { data: {
+    comment: "Loaded comment", attachments: [{ file_name: "comment-spec.txt", link: "https://example.com/comment-spec.txt" }],
+  } });
+  let releaseList;
+  const listGate = new Promise(resolve => { releaseList = resolve; });
+  await page.route("**/api/tasks", async route => {
+    await listGate;
+    await route.continue();
+  });
+  let fail = true;
+  await page.route(`**/api/tasks/${id}`, route => {
+    if (fail) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ statusMessage: "Details temporarily unavailable" }) });
+    return route.continue();
+  });
+  try {
+    await page.goto(`/task/${id}`);
+    await expect(page.getByRole("alert")).toContainText("Details temporarily unavailable");
+    fail = false;
+    await page.getByRole("button", { name: "Retry", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Full task details", exact: true })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Loaded subtask" })).toBeChecked();
+    const listResponse = page.waitForResponse(response => response.url().endsWith("/api/tasks"));
+    releaseList();
+    await listResponse;
+    await page.getByRole("tab", { name: /^Comments/ }).click();
+    await expect(page.getByRole("tabpanel", { name: /^Comments/ }).getByText("Loaded comment", { exact: true })).toBeVisible();
+    await expect(page.getByRole("tabpanel", { name: /^Comments/ }).getByRole("link", { name: /comment-spec.txt/ })).toBeVisible();
+    await page.getByRole("tab", { name: /^Attachments/ }).click();
+    await expect(page.getByRole("tabpanel", { name: /^Attachments/ }).getByRole("link", { name: /task-spec.txt/ })).toBeVisible();
+    await page.getByRole("tab", { name: /^History/ }).click();
+    await expect(page.getByText("Detail Browser · Created task", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("tab", { name: "Comments (1)", exact: true })).toBeVisible();
+  } finally { releaseList(); }
+});
 test.beforeEach(async ({ page }) => {
   page.on("pageerror", error => console.error("Browser error:", error.message));
   await page.route("https://fonts.googleapis.com/**", route => route.abort());

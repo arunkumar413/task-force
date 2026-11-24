@@ -25,11 +25,9 @@ export const loadTasks = createAsyncThunk("tasks/load", async (_, { getState }) 
   const [items, views] = await Promise.all([request("/tasks"), request("/views")]);
   return { items, views, owner };
 });
-export const loadTask = createAsyncThunk("tasks/loadOne", async (id, { getState, dispatch }) => {
+export const loadTask = createAsyncThunk("tasks/loadOne", async (id, { getState, signal }) => {
   if (!getState().auth.isLoggedin) return getState().tasks.items.find(item => item.id === id);
-  const task = await request("/tasks/" + id);
-  dispatch(upsertTask(task));
-  return task;
+  return request("/tasks/" + id, { signal });
 });
 export const saveTask = createAsyncThunk("tasks/save", async (task, { getState, dispatch }) => {
   const { files = [], ...fields } = task;
@@ -88,21 +86,28 @@ export const deleteView = createAsyncThunk("tasks/deleteView", async (id, { getS
 });
 const slice = createSlice({
   name: "tasks",
-  initialState: { items: [], views: [], owner: null, loading: false, loaded: false, error: "" },
+  initialState: { items: [], details: {}, views: [], owner: null, loading: false, loaded: false, error: "" },
   reducers: {
     upsertTask(state, { payload }) {
       const index = state.items.findIndex(task => task.id === payload.id);
       if (index < 0) state.items.push(payload); else state.items[index] = payload;
+      if (state.details[payload.id]) state.details[payload.id] = payload;
     },
-    removeTask(state, { payload }) { state.items = state.items.filter(task => task.id !== payload); },
+    removeTask(state, { payload }) { state.items = state.items.filter(task => task.id !== payload); delete state.details[payload]; },
     addView(state, { payload }) {
       const index = state.views.findIndex(view => view.id === payload.id);
       if (index < 0) state.views.push(payload); else state.views[index] = payload;
     },
     removeView(state, { payload }) { state.views = state.views.filter(view => view.id !== payload); },
-    resetTasks(state) { state.items = []; state.views = []; state.loaded = false; state.owner = null; },
+    resetTasks(state) { state.items = []; state.details = {}; state.views = []; state.loaded = false; state.owner = null; },
   },
   extraReducers: builder => builder
+    .addCase(loadTask.fulfilled, (state, { payload }) => {
+      if (!payload) return;
+      state.details[payload.id] = payload;
+      const index = state.items.findIndex(task => task.id === payload.id);
+      if (index < 0) state.items.push(payload); else state.items[index] = payload;
+    })
     .addCase(loadTasks.pending, (state, action) => { state.loading = true; state.error = ""; state.requestId = action.meta.requestId; })
     .addCase(loadTasks.fulfilled, (state, { payload, meta }) => {
       if (state.requestId !== meta.requestId) return;

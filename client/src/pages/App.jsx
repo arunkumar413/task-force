@@ -122,7 +122,7 @@ export default function App({ viewActions, viewFeedback }) {
               const cellClasses = "border-b border-slate-200 bg-surface px-4 py-3 text-left align-middle group-hover/task-row:bg-slate-50 " + (firstTask ? "border-t " : "");
               return <tr key={task.id} data-task-id={task.id} className="group/task-row">
                 <td className={cellClasses + "border-l wrap-anywhere " + (firstTask ? "rounded-tl-lg " : "") + (lastTask ? "rounded-bl-lg" : "")}>
-                <Link className="font-medium text-slate-900 hover:text-primary hover:underline underline-offset-4" to={"/task/" + task.id}>{task.title}</Link>
+                <Link className="font-medium text-slate-900 hover:text-primary hover:underline underline-offset-4" to={"/task/" + task.id} target="_blank" >{task.title}</Link>
                 </td>
                 <td className={cellClasses}>
                 <span className={priorityClasses[task.priority]}>{task.priority}</span></td>
